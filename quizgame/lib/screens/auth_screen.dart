@@ -2,6 +2,85 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
+// Avatar picker widget
+class AvatarPicker extends StatelessWidget {
+  final String? selectedAvatar;
+  final ValueChanged<String> onAvatarSelected;
+  final bool showLabel;
+
+  const AvatarPicker({
+    super.key,
+    required this.selectedAvatar,
+    required this.onAvatarSelected,
+    this.showLabel = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showLabel) ...[
+          Text(
+            'Choose Your Avatar',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 12),
+        ],
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: availableAvatars.length,
+            itemBuilder: (context, index) {
+              final avatar = availableAvatars[index];
+              final isSelected = selectedAvatar == avatar;
+              return GestureDetector(
+                onTap: () => onAvatarSelected(avatar),
+                child: Container(
+                  width: 80,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey.shade300,
+                      width: isSelected ? 3 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    color: isSelected
+                        ? Theme.of(context).primaryColor.withOpacity(0.1)
+                        : null,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(11),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Image.asset(
+                        'lib/assets/$avatar',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (selectedAvatar == null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Please select an avatar to continue',
+            style: TextStyle(color: Colors.red.shade400, fontSize: 12),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class AuthScreen extends StatefulWidget {
   static const routeName = '/auth';
 
@@ -25,11 +104,26 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _error;
   String? _success;
   String _authMode = 'signup'; // 'signup', 'login', or 'guest'
+  String? _selectedAvatar;
+  String? _currentAvatar;
 
   @override
   void initState() {
     super.initState();
     _user = _authService.currentUser;
+    _loadCurrentAvatar();
+  }
+
+  Future<void> _loadCurrentAvatar() async {
+    if (_user != null) {
+      final avatar = await _authService.getUserAvatar();
+      if (mounted) {
+        setState(() {
+          _currentAvatar = avatar;
+          _selectedAvatar = avatar;
+        });
+      }
+    }
   }
 
   @override
@@ -52,6 +146,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _handleAnonymous() async {
     final name = _nameController.text.trim();
+    if (_selectedAvatar == null) {
+      setState(() => _error = 'Please select an avatar');
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -59,8 +157,12 @@ class _AuthScreenState extends State<AuthScreen> {
     });
     try {
       final user = await _authService.signInAnonymously();
-      if (user != null && name.isNotEmpty) {
-        await _updateDisplayName(user, name);
+      if (user != null) {
+        if (name.isNotEmpty) {
+          await _updateDisplayName(user, name);
+        }
+        await _authService.saveUserAvatar(_selectedAvatar!);
+        _currentAvatar = _selectedAvatar;
       }
     } catch (e) {
       setState(() => _error = 'Anonymous sign‑in failed');
@@ -84,6 +186,15 @@ class _AuthScreenState extends State<AuthScreen> {
         // User cancelled
         setState(() => _loading = false);
         return;
+      }
+      // Check if user has an avatar, if not, prompt to select one
+      final existingAvatar = await _authService.getUserAvatar();
+      if (existingAvatar == null && _selectedAvatar != null) {
+        await _authService.saveUserAvatar(_selectedAvatar!);
+        _currentAvatar = _selectedAvatar;
+      } else {
+        _currentAvatar = existingAvatar;
+        _selectedAvatar = existingAvatar;
       }
     } catch (e) {
       setState(() => _error = 'Google sign‑in failed: $e');
@@ -114,6 +225,10 @@ class _AuthScreenState extends State<AuthScreen> {
       if (user != null && name.isNotEmpty) {
         await _updateDisplayName(user, name);
       }
+      // Load existing avatar
+      final existingAvatar = await _authService.getUserAvatar();
+      _currentAvatar = existingAvatar;
+      _selectedAvatar = existingAvatar;
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
@@ -134,6 +249,10 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _error = 'Name, email and password required');
       return;
     }
+    if (_selectedAvatar == null) {
+      setState(() => _error = 'Please select an avatar');
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -144,6 +263,8 @@ class _AuthScreenState extends State<AuthScreen> {
       final user = await _authService.signUpWithEmail(email, password);
       if (user != null) {
         await _updateDisplayName(user, name);
+        await _authService.saveUserAvatar(_selectedAvatar!);
+        _currentAvatar = _selectedAvatar;
       }
     } on FirebaseAuthException catch (e) {
       setState(() => _error = e.message);
@@ -246,7 +367,9 @@ class _AuthScreenState extends State<AuthScreen> {
       if (e.code == 'wrong-password') {
         setState(() => _error = 'Current password is incorrect');
       } else if (e.code == 'requires-recent-login') {
-        setState(() => _error = 'Please sign out and sign in again to change password');
+        setState(
+          () => _error = 'Please sign out and sign in again to change password',
+        );
       } else {
         setState(() => _error = e.message ?? 'Failed to update password');
       }
@@ -269,8 +392,99 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _showAvatarChangeDialog() async {
+    String? tempSelectedAvatar = _currentAvatar;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Change Avatar'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: availableAvatars.length,
+              itemBuilder: (context, index) {
+                final avatar = availableAvatars[index];
+                final isSelected = tempSelectedAvatar == avatar;
+                return GestureDetector(
+                  onTap: () {
+                    setDialogState(() => tempSelectedAvatar = avatar);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
+                            : Colors.grey.shade300,
+                        width: isSelected ? 3 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      color: isSelected
+                          ? Theme.of(context).primaryColor.withOpacity(0.1)
+                          : null,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Image.asset(
+                          'lib/assets/$avatar',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: tempSelectedAvatar != null
+                  ? () => Navigator.of(context).pop(tempSelectedAvatar)
+                  : null,
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result != _currentAvatar) {
+      setState(() {
+        _loading = true;
+        _error = null;
+        _success = null;
+      });
+      try {
+        await _authService.saveUserAvatar(result);
+        setState(() {
+          _currentAvatar = result;
+          _selectedAvatar = result;
+          _success = 'Avatar updated successfully!';
+        });
+      } catch (e) {
+        setState(() => _error = 'Failed to update avatar');
+      } finally {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
   Widget _buildLoggedInView() {
-    final displayName = _user?.displayName ??
+    final displayName =
+        _user?.displayName ??
         (_user?.isAnonymous == true ? 'Guest' : _user?.email ?? 'Unknown');
     final isAnonymous = _user?.isAnonymous ?? false;
     final email = _user?.email;
@@ -288,12 +502,45 @@ class _AuthScreenState extends State<AuthScreen> {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Theme.of(context).primaryColor,
-                      child: Text(
-                        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 24, color: Colors.white),
+                    GestureDetector(
+                      onTap: () => _showAvatarChangeDialog(),
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Theme.of(context).primaryColor,
+                            backgroundImage: _currentAvatar != null
+                                ? AssetImage('lib/assets/$_currentAvatar')
+                                : null,
+                            child: _currentAvatar == null
+                                ? Text(
+                                    displayName.isNotEmpty
+                                        ? displayName[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -312,14 +559,20 @@ class _AuthScreenState extends State<AuthScreen> {
                                 Flexible(
                                   child: Text(
                                     email,
-                                    style: Theme.of(context).textTheme.bodyMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Icon(
-                                  emailVerified ? Icons.verified : Icons.warning,
+                                  emailVerified
+                                      ? Icons.verified
+                                      : Icons.warning,
                                   size: 16,
-                                  color: emailVerified ? Colors.green : Colors.orange,
+                                  color: emailVerified
+                                      ? Colors.green
+                                      : Colors.orange,
                                 ),
                               ],
                             ),
@@ -327,9 +580,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           if (isAnonymous)
                             Text(
                               'Guest Account',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey,
-                                  ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey),
                             ),
                         ],
                       ),
@@ -402,8 +654,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   Text(
                     'Change Password',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -446,9 +698,16 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.help_outline, size: 16, color: Colors.grey),
+                      const Icon(
+                        Icons.help_outline,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
-                      const Text('Forgot your password? ', style: TextStyle(color: Colors.grey)),
+                      const Text(
+                        'Forgot your password? ',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       TextButton(
                         onPressed: _handleSendPasswordReset,
                         style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -486,9 +745,9 @@ class _AuthScreenState extends State<AuthScreen> {
         if (_authMode == 'signup') ...[
           Text(
             'Create Account',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -524,6 +783,12 @@ class _AuthScreenState extends State<AuthScreen> {
               prefixIcon: Icon(Icons.lock),
             ),
             obscureText: true,
+          ),
+          const SizedBox(height: 16),
+          AvatarPicker(
+            selectedAvatar: _selectedAvatar,
+            onAvatarSelected: (avatar) =>
+                setState(() => _selectedAvatar = avatar),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -568,9 +833,9 @@ class _AuthScreenState extends State<AuthScreen> {
         if (_authMode == 'login') ...[
           Text(
             'Welcome Back',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -641,9 +906,9 @@ class _AuthScreenState extends State<AuthScreen> {
         if (_authMode == 'guest') ...[
           Text(
             'Play as Guest',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -660,6 +925,12 @@ class _AuthScreenState extends State<AuthScreen> {
               prefixIcon: Icon(Icons.person),
               hintText: 'Enter name to show in game',
             ),
+          ),
+          const SizedBox(height: 16),
+          AvatarPicker(
+            selectedAvatar: _selectedAvatar,
+            onAvatarSelected: (avatar) =>
+                setState(() => _selectedAvatar = avatar),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -711,10 +982,7 @@ class _AuthScreenState extends State<AuthScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              if (_user != null)
-                _buildLoggedInView()
-              else
-                _buildLoginView(),
+              if (_user != null) _buildLoggedInView() else _buildLoginView(),
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Container(
