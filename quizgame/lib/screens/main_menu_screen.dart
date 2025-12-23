@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'auth_screen.dart';
 import 'create_room_screen.dart';
+import 'join_room_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({super.key});
@@ -26,7 +27,7 @@ class MainMenuScreen extends StatelessWidget {
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () {
-                // TODO: navigate to JoinRoomScreen
+                Navigator.of(context).pushNamed(JoinRoomScreen.routeName);
               },
               child: const Text('Join Game'),
             ),

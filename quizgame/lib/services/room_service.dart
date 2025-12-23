@@ -17,8 +17,11 @@ class RoomService {
     int maxPlayers = 10,
   }) async {
     final code = _generateCode();
-
     final docRef = _firestore.collection('rooms').doc();
+
+    final players = [
+      {'uid': hostId, 'name': hostName},
+    ];
 
     final room = Room(
       id: docRef.id,
@@ -29,10 +32,59 @@ class RoomService {
       playerCount: 1,
       state: 'waiting',
       createdAt: DateTime.now(),
+      players: players,
     );
 
     await docRef.set(room.toFirestore());
-
     return room;
+  }
+
+  Future<Room?> getRoomByCode(String code) async {
+    final snap = await _firestore
+        .collection('rooms')
+        .where('code', isEqualTo: code)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) return null;
+    return Room.fromFirestore(snap.docs.first);
+  }
+
+  Future<void> addPlayerToRoom({
+    required String roomId,
+    required String uid,
+    required String name,
+  }) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(docRef);
+      final data = snap.data() as Map<String, dynamic>;
+      final players = List<Map<String, dynamic>>.from(data['players'] ?? []);
+      final maxPlayers = data['maxPlayers'] as int;
+      final playerCount = data['playerCount'] as int;
+
+      if (playerCount >= maxPlayers) {
+        throw Exception('Room is full');
+      }
+
+      // prevent duplicates
+      if (!players.any((p) => p['uid'] == uid)) {
+        players.add({'uid': uid, 'name': name});
+      }
+
+      tx.update(docRef, {'players': players, 'playerCount': players.length});
+    });
+  }
+
+  Stream<Room> watchRoom(String roomId) {
+    return _firestore
+        .collection('rooms')
+        .doc(roomId)
+        .snapshots()
+        .map(
+          (doc) =>
+              Room.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>),
+        );
   }
 }

@@ -4,11 +4,12 @@ class Room {
   final String id;
   final String hostId;
   final String hostName;
-  final String code; // short code to join
+  final String code;
   final int maxPlayers;
   final int playerCount;
-  final String state; // waiting / playing / finished
+  final String state;
   final DateTime createdAt;
+  final List<Map<String, dynamic>> players; // NEW
 
   Room({
     required this.id,
@@ -19,6 +20,7 @@ class Room {
     required this.playerCount,
     required this.state,
     required this.createdAt,
+    required this.players,
   });
 
   factory Room.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -32,6 +34,7 @@ class Room {
       playerCount: data['playerCount'] as int,
       state: data['state'] as String,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      players: List<Map<String, dynamic>>.from(data['players'] ?? []),
     );
   }
 
@@ -43,5 +46,6 @@ class Room {
     'playerCount': playerCount,
     'state': state,
     'createdAt': Timestamp.fromDate(createdAt),
+    'players': players,
   };
 }
