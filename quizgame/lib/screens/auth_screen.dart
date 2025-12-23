@@ -72,6 +72,29 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _success = null;
+    });
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (user == null) {
+        // User cancelled
+        setState(() => _loading = false);
+        return;
+      }
+    } catch (e) {
+      setState(() => _error = 'Google sign‑in failed: $e');
+    } finally {
+      setState(() {
+        _user = FirebaseAuth.instance.currentUser;
+        _loading = false;
+      });
+    }
+  }
+
   Future<void> _handleEmailSignIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -525,6 +548,15 @@ class _AuthScreenState extends State<AuthScreen> {
             ],
           ),
           const Divider(height: 32),
+          OutlinedButton.icon(
+            onPressed: _handleGoogleSignIn,
+            icon: const Icon(Icons.g_mobiledata, size: 24),
+            label: const Text('Continue with Google'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+          ),
+          const SizedBox(height: 8),
           TextButton.icon(
             onPressed: () => setState(() => _authMode = 'guest'),
             icon: const Icon(Icons.person_outline),
@@ -589,6 +621,15 @@ class _AuthScreenState extends State<AuthScreen> {
             ],
           ),
           const Divider(height: 32),
+          OutlinedButton.icon(
+            onPressed: _handleGoogleSignIn,
+            icon: const Icon(Icons.g_mobiledata, size: 24),
+            label: const Text('Continue with Google'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            ),
+          ),
+          const SizedBox(height: 8),
           TextButton.icon(
             onPressed: () => setState(() => _authMode = 'guest'),
             icon: const Icon(Icons.person_outline),
