@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/room_service.dart';
+import '../services/auth_service.dart';
 import '../models/room.dart';
 import 'auth_screen.dart';
 import 'lobby_screen.dart';
@@ -16,6 +17,7 @@ class CreateRoomScreen extends StatefulWidget {
 
 class _CreateRoomScreenState extends State<CreateRoomScreen> {
   final _roomService = RoomService();
+  final _authService = AuthService();
   final _maxPlayersController = TextEditingController(text: '10');
 
   Room? _room;
@@ -51,6 +53,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
     final hostName = user.displayName ?? 'Guest';
     final maxPlayers = int.tryParse(_maxPlayersController.text) ?? 10;
+    final hostAvatar = await _authService.getUserAvatar();
 
     setState(() {
       _loading = true;
@@ -62,6 +65,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         hostId: user.uid,
         hostName: hostName,
         maxPlayers: maxPlayers,
+        hostAvatar: hostAvatar,
       );
       setState(() => _room = room);
 

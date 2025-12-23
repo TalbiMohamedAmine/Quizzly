@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/room_service.dart';
+import '../services/auth_service.dart';
 import '../models/room.dart';
 import 'auth_screen.dart';
 import 'lobby_screen.dart';
@@ -16,6 +17,7 @@ class JoinRoomScreen extends StatefulWidget {
 
 class _JoinRoomScreenState extends State<JoinRoomScreen> {
   final _roomService = RoomService();
+  final _authService = AuthService();
   final _codeController = TextEditingController();
 
   bool _loading = false;
@@ -65,10 +67,12 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
         setState(() => _error = 'Room not found.');
       } else {
         final name = user.displayName ?? 'Guest';
+        final avatar = await _authService.getUserAvatar();
         await _roomService.addPlayerToRoom(
           roomId: room.id,
           uid: user.uid,
           name: name,
+          avatar: avatar,
         );
 
         if (!mounted) return;

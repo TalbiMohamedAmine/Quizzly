@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
@@ -30,43 +31,42 @@ class AvatarPicker extends StatelessWidget {
           const SizedBox(height: 12),
         ],
         SizedBox(
-          height: 100,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: availableAvatars.length,
-            itemBuilder: (context, index) {
-              final avatar = availableAvatars[index];
-              final isSelected = selectedAvatar == avatar;
-              return GestureDetector(
-                onTap: () => onAvatarSelected(avatar),
-                child: Container(
-                  width: 80,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isSelected
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey.shade300,
-                      width: isSelected ? 3 : 1,
+          height: 120,
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {
+                PointerDeviceKind.touch,
+                PointerDeviceKind.mouse,
+                PointerDeviceKind.trackpad,
+              },
+            ),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: availableAvatars.length,
+              itemBuilder: (context, index) {
+                final avatar = availableAvatars[index];
+                final isSelected = selectedAvatar == avatar;
+                return GestureDetector(
+                  onTap: () => onAvatarSelected(avatar),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutBack,
+                    width: isSelected ? 90 : 70,
+                    height: isSelected ? 90 : 70,
+                    margin: EdgeInsets.only(
+                      right: 8,
+                      top: isSelected ? 5 : 15,
+                      bottom: isSelected ? 5 : 15,
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    color: isSelected
-                        ? Theme.of(context).primaryColor.withOpacity(0.1)
-                        : null,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Image.asset(
-                        'lib/assets/$avatar',
-                        fit: BoxFit.contain,
-                      ),
+                    child: Image.asset(
+                      'lib/assets/$avatar',
+                      fit: BoxFit.contain,
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
         if (selectedAvatar == null) ...[
@@ -402,47 +402,42 @@ class _AuthScreenState extends State<AuthScreen> {
           title: const Text('Change Avatar'),
           content: SizedBox(
             width: double.maxFinite,
-            height: 300,
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
+            height: 350,
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(
+                dragDevices: {
+                  PointerDeviceKind.touch,
+                  PointerDeviceKind.mouse,
+                  PointerDeviceKind.trackpad,
+                },
               ),
-              itemCount: availableAvatars.length,
-              itemBuilder: (context, index) {
-                final avatar = availableAvatars[index];
-                final isSelected = tempSelectedAvatar == avatar;
-                return GestureDetector(
-                  onTap: () {
-                    setDialogState(() => tempSelectedAvatar = avatar);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: isSelected
-                            ? Theme.of(context).primaryColor
-                            : Colors.grey.shade300,
-                        width: isSelected ? 3 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      color: isSelected
-                          ? Theme.of(context).primaryColor.withOpacity(0.1)
-                          : null,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Image.asset(
-                          'lib/assets/$avatar',
-                          fit: BoxFit.contain,
-                        ),
+              child: GridView.builder(
+                physics: const BouncingScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: availableAvatars.length,
+                itemBuilder: (context, index) {
+                  final avatar = availableAvatars[index];
+                  final isSelected = tempSelectedAvatar == avatar;
+                  return GestureDetector(
+                    onTap: () {
+                      setDialogState(() => tempSelectedAvatar = avatar);
+                    },
+                    child: AnimatedScale(
+                      scale: isSelected ? 1.15 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutBack,
+                      child: Image.asset(
+                        'lib/assets/$avatar',
+                        fit: BoxFit.contain,
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
           actions: [

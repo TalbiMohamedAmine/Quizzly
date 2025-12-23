@@ -15,12 +15,13 @@ class RoomService {
     required String hostId,
     required String hostName,
     int maxPlayers = 10,
+    String? hostAvatar,
   }) async {
     final code = _generateCode();
     final docRef = _firestore.collection('rooms').doc();
 
     final players = [
-      {'uid': hostId, 'name': hostName},
+      {'uid': hostId, 'name': hostName, 'avatar': hostAvatar},
     ];
 
     final room = Room(
@@ -54,6 +55,7 @@ class RoomService {
     required String roomId,
     required String uid,
     required String name,
+    String? avatar,
   }) async {
     final docRef = _firestore.collection('rooms').doc(roomId);
 
@@ -70,7 +72,7 @@ class RoomService {
 
       // prevent duplicates
       if (!players.any((p) => p['uid'] == uid)) {
-        players.add({'uid': uid, 'name': name});
+        players.add({'uid': uid, 'name': name, 'avatar': avatar});
       }
 
       tx.update(docRef, {'players': players, 'playerCount': players.length});

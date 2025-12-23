@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/room_service.dart';
+import '../services/auth_service.dart';
 import '../models/room.dart';
 
 class LobbyScreen extends StatefulWidget {
@@ -33,9 +34,9 @@ class _LobbyScreenState extends State<LobbyScreen> {
     } catch (e) {
       setState(() => _leaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to leave room')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to leave room')));
       }
     }
   }
@@ -129,26 +130,96 @@ class _LobbyScreenState extends State<LobbyScreen> {
                         const SizedBox(height: 8),
                         Text('Players: ${room.playerCount}/${room.maxPlayers}'),
                         const SizedBox(height: 16),
-                        const Text('Player list:'),
-                        const SizedBox(height: 8),
+                        const Text(
+                          'Players',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Expanded(
-                          child: ListView.builder(
+                          child: GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 4,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.75,
+                                ),
                             itemCount: room.players.length,
                             itemBuilder: (context, index) {
                               final p = room.players[index];
                               final isPlayerHost = p['uid'] == room.hostId;
-                              return ListTile(
-                                leading: Icon(
-                                  isPlayerHost ? Icons.star : Icons.person,
-                                  color: isPlayerHost ? Colors.amber : null,
-                                ),
-                                title: Text(p['name'] ?? 'Player'),
-                                trailing: isPlayerHost
-                                    ? const Text(
-                                        'Host',
-                                        style: TextStyle(color: Colors.grey),
-                                      )
-                                    : null,
+                              final playerAvatar = p['avatar'] as String?;
+                              final playerName = p['name'] ?? 'Player';
+
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: playerAvatar != null
+                                            ? ClipOval(
+                                                child: Image.asset(
+                                                  'lib/assets/$playerAvatar',
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              )
+                                            : Center(
+                                                child: Text(
+                                                  playerName.isNotEmpty
+                                                      ? playerName[0]
+                                                            .toUpperCase()
+                                                      : '?',
+                                                  style: const TextStyle(
+                                                    fontSize: 24,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                      ),
+                                      if (isPlayerHost)
+                                        Positioned(
+                                          top: -4,
+                                          right: -4,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.amber,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.star,
+                                              size: 14,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    playerName,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isPlayerHost
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               );
                             },
                           ),
