@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/room_service.dart';
 import '../models/room.dart';
+import 'auth_screen.dart';
 import 'lobby_screen.dart';
 
 class JoinRoomScreen extends StatefulWidget {
@@ -19,6 +20,20 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
 
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  void _checkAuth() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (FirebaseAuth.instance.currentUser == null) {
+        Navigator.of(context).pushReplacementNamed(AuthScreen.routeName);
+      }
+    });
+  }
 
   @override
   void dispose() {

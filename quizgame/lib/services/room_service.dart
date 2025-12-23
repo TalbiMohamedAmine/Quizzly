@@ -87,4 +87,30 @@ class RoomService {
               Room.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>),
         );
   }
+
+  Future<void> removePlayerFromRoom({
+    required String roomId,
+    required String uid,
+  }) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(docRef);
+      if (!snap.exists) return;
+
+      final data = snap.data() as Map<String, dynamic>;
+      final players = List<Map<String, dynamic>>.from(data['players'] ?? []);
+      final hostId = data['hostId'] as String;
+
+      // Remove the player
+      players.removeWhere((p) => p['uid'] == uid);
+
+      // If host leaves or no players left, delete the room
+      if (uid == hostId || players.isEmpty) {
+        tx.delete(docRef);
+      } else {
+        tx.update(docRef, {'players': players, 'playerCount': players.length});
+      }
+    });
+  }
 }

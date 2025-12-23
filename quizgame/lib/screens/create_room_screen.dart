@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/room_service.dart';
 import '../models/room.dart';
+import 'auth_screen.dart';
+import 'lobby_screen.dart';
 
 class CreateRoomScreen extends StatefulWidget {
   static const routeName = '/create-room';
@@ -19,6 +21,20 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   Room? _room;
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  void _checkAuth() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (FirebaseAuth.instance.currentUser == null) {
+        Navigator.of(context).pushReplacementNamed(AuthScreen.routeName);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -48,6 +64,11 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
         maxPlayers: maxPlayers,
       );
       setState(() => _room = room);
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => LobbyScreen(roomId: room.id)),
+      );
     } catch (e) {
       setState(() => _error = 'Failed to create room.');
     } finally {
