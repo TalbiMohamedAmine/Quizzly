@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_menu_screen.dart';
+import 'screens/auth_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,16 +18,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Quiz Duel',
       theme: ThemeData.dark(),
-      home: const HomeScreen(),
+      home: const MainMenuScreen(),
+      routes: {AuthScreen.routeName: (_) => const AuthScreen()},
     );
-  }
-}
-
-class FirebaseTestScreen extends StatelessWidget {
-  const FirebaseTestScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Firebase initialized ✅')));
   }
 }
