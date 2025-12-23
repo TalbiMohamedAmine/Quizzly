@@ -102,7 +102,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                               child: Text(
                                 'Code: ${room.code}',
                                 style: const TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 28,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -110,116 +110,155 @@ class _LobbyScreenState extends State<LobbyScreen> {
                             if (isHost)
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                                  horizontal: 12,
+                                  vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.amber,
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text(
                                   'HOST',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                    fontSize: 16,
                                   ),
                                 ),
                               ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text('Players: ${room.playerCount}/${room.maxPlayers}'),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Players: ${room.playerCount}/${room.maxPlayers}',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(height: 20),
                         const Text(
                           'Players',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child: GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 4,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.75,
-                                ),
-                            itemCount: room.players.length,
-                            itemBuilder: (context, index) {
-                              final p = room.players[index];
-                              final isPlayerHost = p['uid'] == room.hostId;
-                              final playerAvatar = p['avatar'] as String?;
-                              final playerName = p['name'] ?? 'Player';
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Use more columns on wider screens (web)
+                              final screenWidth = constraints.maxWidth;
+                              int crossAxisCount;
+                              if (screenWidth > 1200) {
+                                crossAxisCount = 8; // Large desktop/fullscreen
+                              } else if (screenWidth > 900) {
+                                crossAxisCount = 6; // Medium desktop
+                              } else if (screenWidth > 600) {
+                                crossAxisCount = 5; // Small desktop/tablet
+                              } else {
+                                crossAxisCount = 3; // Mobile
+                              }
 
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: playerAvatar != null
-                                            ? ClipOval(
-                                                child: Image.asset(
-                                                  'lib/assets/$playerAvatar',
-                                                  fit: BoxFit.cover,
+                              return GridView.builder(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: crossAxisCount,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                      childAspectRatio: 0.7,
+                                    ),
+                                itemCount: room.players.length,
+                                itemBuilder: (context, index) {
+                                  final p = room.players[index];
+                                  final isPlayerHost = p['uid'] == room.hostId;
+                                  final playerAvatar = p['avatar'] as String?;
+                                  final playerName = p['name'] ?? 'Player';
+
+                                  return LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final avatarSize =
+                                          constraints.maxWidth * 0.85;
+                                      final fontSize = avatarSize * 0.4;
+                                      final starSize = avatarSize * 0.18;
+                                      final nameFontSize =
+                                          constraints.maxWidth * 0.12;
+
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Container(
+                                                width: avatarSize,
+                                                height: avatarSize,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade200,
+                                                  shape: BoxShape.circle,
                                                 ),
-                                              )
-                                            : Center(
-                                                child: Text(
-                                                  playerName.isNotEmpty
-                                                      ? playerName[0]
-                                                            .toUpperCase()
-                                                      : '?',
-                                                  style: const TextStyle(
-                                                    fontSize: 24,
-                                                    fontWeight: FontWeight.bold,
+                                                child: playerAvatar != null
+                                                    ? ClipOval(
+                                                        child: Image.asset(
+                                                          'lib/assets/$playerAvatar',
+                                                          fit: BoxFit.cover,
+                                                        ),
+                                                      )
+                                                    : Center(
+                                                        child: Text(
+                                                          playerName.isNotEmpty
+                                                              ? playerName[0]
+                                                                    .toUpperCase()
+                                                              : '?',
+                                                          style: TextStyle(
+                                                            fontSize: fontSize,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ),
+                                              ),
+                                              if (isPlayerHost)
+                                                Positioned(
+                                                  top: -4,
+                                                  right: -4,
+                                                  child: Container(
+                                                    padding: EdgeInsets.all(
+                                                      starSize * 0.2,
+                                                    ),
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                          color: Colors.amber,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                    child: Icon(
+                                                      Icons.star,
+                                                      size: starSize,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                      ),
-                                      if (isPlayerHost)
-                                        Positioned(
-                                          top: -4,
-                                          right: -4,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(2),
-                                            decoration: const BoxDecoration(
-                                              color: Colors.amber,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.star,
-                                              size: 14,
-                                              color: Colors.white,
-                                            ),
+                                            ],
                                           ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    playerName,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: isPlayerHost
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            playerName,
+                                            style: TextStyle(
+                                              fontSize: nameFontSize.clamp(
+                                                14.0,
+                                                22.0,
+                                              ),
+                                              fontWeight: isPlayerHost
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
                               );
                             },
                           ),
