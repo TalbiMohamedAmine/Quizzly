@@ -20,53 +20,53 @@ class _LobbyScreenState extends State<LobbyScreen> {
   bool _leaving = false;
 
   // Available categories
-  static const List<Map<String, dynamic>> _allCategories = [
-    {'name': 'Labobo', 'isVip': false},
-    {'name': 'Strange questions', 'isVip': false},
-    {'name': 'Chocolate sweets', 'isVip': false},
-    {'name': 'General information', 'isVip': false},
-    {'name': 'Sciences', 'isVip': false},
-    {'name': 'Who is the famous person?', 'isVip': false},
-    {'name': 'Arts', 'isVip': false},
-    {'name': 'Soccer', 'isVip': false},
-    {'name': 'Sports', 'isVip': false},
-    {'name': 'Geography', 'isVip': false},
-    {'name': 'Information', 'isVip': false},
-    {'name': 'Maps', 'isVip': false},
-    {'name': 'Kuwait', 'isVip': false},
-    {'name': 'Literature', 'isVip': true},
-    {'name': 'Date', 'isVip': false},
-    {'name': 'Video games', 'isVip': true},
-    {'name': 'Cartoon', 'isVip': true},
-    {'name': 'TV series', 'isVip': false},
-    {'name': 'Films', 'isVip': false},
-    {'name': 'Fashion world', 'isVip': false},
-    {'name': 'Guinness World Records', 'isVip': false},
-    {'name': 'Digital currencies', 'isVip': false},
-    {'name': 'Logos of universities', 'isVip': false},
-    {'name': 'Technology', 'isVip': false},
-    {'name': 'Currency', 'isVip': false},
-    {'name': 'Slogans', 'isVip': false},
-    {'name': 'Guess the airport', 'isVip': false},
-    {'name': 'Products', 'isVip': false},
-    {'name': 'Fruits and vegetables', 'isVip': false},
-    {'name': 'Proverbs and riddles', 'isVip': false},
-    {'name': 'Ramadan Nights', 'isVip': false},
-    {'name': 'Restaurants', 'isVip': false},
-    {'name': 'Characters', 'isVip': false},
-    {'name': 'Restaurant logos', 'isVip': false},
-    {'name': 'Cars', 'isVip': false},
-    {'name': 'Aviation world', 'isVip': false},
-    {'name': 'The kitchen', 'isVip': false},
-    {'name': 'Food', 'isVip': false},
-    {'name': 'Mathematics', 'isVip': false},
-    {'name': 'Plants', 'isVip': false},
-    {'name': 'Body science and health', 'isVip': false},
-    {'name': 'Astronomy and space', 'isVip': false},
-    {'name': 'General medicine', 'isVip': false},
-    {'name': 'Math puzzles', 'isVip': false},
-    {'name': 'Physics', 'isVip': false},
-    {'name': 'Inventors and inventions', 'isVip': false},
+  static const List<String> _allCategories = [
+    'Labobo',
+    'Strange questions',
+    'Chocolate sweets',
+    'General information',
+    'Sciences',
+    'Who is the famous person?',
+    'Arts',
+    'Soccer',
+    'Sports',
+    'Geography',
+    'Information',
+    'Maps',
+    'Kuwait',
+    'Literature',
+    'Date',
+    'Video games',
+    'Cartoon',
+    'TV series',
+    'Films',
+    'Fashion world',
+    'Guinness World Records',
+    'Digital currencies',
+    'Logos of universities',
+    'Technology',
+    'Currency',
+    'Slogans',
+    'Guess the airport',
+    'Products',
+    'Fruits and vegetables',
+    'Proverbs and riddles',
+    'Ramadan Nights',
+    'Restaurants',
+    'Characters',
+    'Restaurant logos',
+    'Cars',
+    'Aviation world',
+    'The kitchen',
+    'Food',
+    'Mathematics',
+    'Plants',
+    'Body science and health',
+    'Astronomy and space',
+    'General medicine',
+    'Math puzzles',
+    'Physics',
+    'Inventors and inventions',
   ];
 
   String _getShareLink(String code) => 'https://quiz-duel-1b09b.web.app/?join=$code';
@@ -469,7 +469,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
               numberOfRounds: val,
             );
           },
-          isVip: true,
         ),
         const SizedBox(height: 12),
 
@@ -524,7 +523,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
     required List<int> items,
     required String suffix,
     required Function(int) onChanged,
-    bool isVip = false,
   }) {
     return Row(
       children: [
@@ -551,24 +549,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
             },
           ),
         ),
-        if (isVip) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD9A223),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text(
-              'VIP',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
         const SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -756,62 +736,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
   }
 
   Widget _buildCategoriesGrid(Room room) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _allCategories.map((cat) {
-        final name = cat['name'] as String;
-        final isVip = cat['isVip'] as bool;
-        final isSelected = room.selectedCategories.contains(name);
-
-        return GestureDetector(
-          onTap: () {
-            _roomService.toggleCategory(roomId: widget.roomId, category: name);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF0E5F88),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isSelected ? const Color(0xFF22D3EE) : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                if (isVip) ...[
-                  const SizedBox(width: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD9A223),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: const Text(
-                      'VIP',
-                      style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+    return _CategoriesGrid(
+      roomId: widget.roomId,
+      selectedCategories: room.selectedCategories,
+      allCategories: _allCategories,
+      roomService: _roomService,
     );
   }
 
@@ -959,6 +888,112 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Isolated widget for categories grid with its own optimistic state
+class _CategoriesGrid extends StatefulWidget {
+  final String roomId;
+  final List<String> selectedCategories;
+  final List<String> allCategories;
+  final RoomService roomService;
+
+  const _CategoriesGrid({
+    required this.roomId,
+    required this.selectedCategories,
+    required this.allCategories,
+    required this.roomService,
+  });
+
+  @override
+  State<_CategoriesGrid> createState() => _CategoriesGridState();
+}
+
+class _CategoriesGridState extends State<_CategoriesGrid> {
+  late Set<String> _localCategories;
+  Set<String> _pendingToggles = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _localCategories = widget.selectedCategories.toSet();
+  }
+
+  @override
+  void didUpdateWidget(_CategoriesGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only sync categories that are NOT currently being toggled
+    if (_pendingToggles.isEmpty) {
+      _localCategories = widget.selectedCategories.toSet();
+    } else {
+      // Merge server state but keep pending toggles
+      final serverCategories = widget.selectedCategories.toSet();
+      for (final name in widget.allCategories) {
+        if (!_pendingToggles.contains(name)) {
+          if (serverCategories.contains(name)) {
+            _localCategories.add(name);
+          } else {
+            _localCategories.remove(name);
+          }
+        }
+      }
+    }
+  }
+
+  void _toggleCategory(String name) {
+    setState(() {
+      _pendingToggles.add(name);
+      if (_localCategories.contains(name)) {
+        _localCategories.remove(name);
+      } else {
+        _localCategories.add(name);
+      }
+    });
+    
+    // Update Firestore and clear pending when done
+    widget.roomService.toggleCategory(roomId: widget.roomId, category: name).then((_) {
+      if (mounted) {
+        setState(() => _pendingToggles.remove(name));
+      }
+    }).catchError((_) {
+      if (mounted) {
+        setState(() => _pendingToggles.remove(name));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: widget.allCategories.map((name) {
+        final isSelected = _localCategories.contains(name);
+
+        return GestureDetector(
+          onTap: () => _toggleCategory(name),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF0E5F88),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? const Color(0xFF22D3EE) : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: Text(
+              name,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
