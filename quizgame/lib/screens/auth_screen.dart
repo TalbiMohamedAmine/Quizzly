@@ -56,7 +56,7 @@ class StarsPainter extends CustomPainter {
 }
 
 // Avatar picker widget
-class AvatarPicker extends StatelessWidget {
+class AvatarPicker extends StatefulWidget {
   final String? selectedAvatar;
   final ValueChanged<String> onAvatarSelected;
   final bool showLabel;
@@ -69,11 +69,53 @@ class AvatarPicker extends StatelessWidget {
   });
 
   @override
+  State<AvatarPicker> createState() => _AvatarPickerState();
+}
+
+class _AvatarPickerState extends State<AvatarPicker>
+    with TickerProviderStateMixin {
+  final Map<String, AnimationController> _bounceControllers = {};
+  final Map<String, Animation<double>> _bounceAnimations = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize animation controllers for each avatar
+    for (final avatar in availableAvatars) {
+      final controller = AnimationController(
+        duration: const Duration(milliseconds: 400),
+        vsync: this,
+      );
+      _bounceControllers[avatar] = controller;
+      _bounceAnimations[avatar] = TweenSequence<double>([
+        TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.2), weight: 30),
+        TweenSequenceItem(tween: Tween(begin: 1.2, end: 0.9), weight: 20),
+        TweenSequenceItem(tween: Tween(begin: 0.9, end: 1.1), weight: 25),
+        TweenSequenceItem(tween: Tween(begin: 1.1, end: 1.0), weight: 25),
+      ]).animate(CurvedAnimation(parent: controller, curve: Curves.easeInOut));
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _bounceControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onAvatarTap(String avatar) {
+    // Play bounce animation
+    _bounceControllers[avatar]?.forward(from: 0);
+    widget.onAvatarSelected(avatar);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (showLabel) ...[
+        if (widget.showLabel) ...[
           Text(
             'Choose Your Avatar',
             style: GoogleFonts.comicNeue(
@@ -84,8 +126,17 @@ class AvatarPicker extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
-        SizedBox(
-          height: 120,
+        Container(
+          constraints: const BoxConstraints(maxHeight: 180),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A4A6F).withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF22D3EE).withValues(alpha: 0.2),
+              width: 2,
+            ),
+          ),
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(context).copyWith(
               dragDevices: {
@@ -93,51 +144,92 @@ class AvatarPicker extends StatelessWidget {
                 PointerDeviceKind.mouse,
                 PointerDeviceKind.trackpad,
               },
+              scrollbars: true,
             ),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
+            child: GridView.builder(
+              shrinkWrap: true,
               physics: const BouncingScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                crossAxisSpacing: 6,
+                mainAxisSpacing: 6,
+                childAspectRatio: 1,
+              ),
               itemCount: availableAvatars.length,
               itemBuilder: (context, index) {
                 final avatar = availableAvatars[index];
-                final isSelected = selectedAvatar == avatar;
+                final isSelected = widget.selectedAvatar == avatar;
                 return GestureDetector(
-                  onTap: () => onAvatarSelected(avatar),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutBack,
-                    width: isSelected ? 90 : 70,
-                    height: isSelected ? 90 : 70,
-                    margin: EdgeInsets.only(
-                      right: 8,
-                      top: isSelected ? 5 : 15,
-                      bottom: isSelected ? 5 : 15,
-                    ),
-                    decoration: isSelected
-                        ? BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF22D3EE,
-                                ).withValues(alpha: 0.6),
-                                blurRadius: 12,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          )
-                        : null,
-                    child: Image.asset(
-                      'lib/assets/$avatar',
-                      fit: BoxFit.contain,
-                    ),
+                  onTap: () => _onAvatarTap(avatar),
+                  child: AnimatedBuilder(
+                    animation: _bounceAnimations[avatar]!,
+                    builder: (context, child) {
+                      final scale = _bounceAnimations[avatar]!.value;
+                      return Transform.scale(
+                        scale: isSelected ? scale : 1.0,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF22D3EE)
+                                  : Colors.transparent,
+                              width: 3,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF22D3EE,
+                                      ).withValues(alpha: 0.5),
+                                      blurRadius: 16,
+                                      spreadRadius: 2,
+                                    ),
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF6366F1,
+                                      ).withValues(alpha: 0.3),
+                                      blurRadius: 20,
+                                      spreadRadius: 4,
+                                    ),
+                                  ]
+                                : null,
+                            gradient: isSelected
+                                ? LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      const Color(
+                                        0xFF2DD4BF,
+                                      ).withValues(alpha: 0.3),
+                                      const Color(
+                                        0xFF6366F1,
+                                      ).withValues(alpha: 0.3),
+                                    ],
+                                  )
+                                : null,
+                          ),
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            opacity: isSelected ? 1.0 : 0.7,
+                            child: Image.asset(
+                              'lib/assets/$avatar',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
             ),
           ),
         ),
-        if (selectedAvatar == null) ...[
+        if (widget.selectedAvatar == null) ...[
           const SizedBox(height: 8),
           Text(
             'Please select an avatar to continue',
@@ -959,7 +1051,7 @@ class _AuthScreenState extends State<AuthScreen>
 
   Widget _buildLoginView() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Mode: Sign Up
         if (_authMode == 'signup') ...[
@@ -1443,156 +1535,177 @@ class _AuthScreenState extends State<AuthScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF05396B), Color(0xFF0E5F88)],
+    return PopScope(
+      canPop: !(widget.returnTo == 'join_room' && _user == null),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && widget.returnTo == 'join_room' && _user == null) {
+          // Go back to main menu instead of join screen
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Background gradient
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF05396B), Color(0xFF0E5F88)],
+                ),
               ),
             ),
-          ),
-          // Animated stars
-          CustomPaint(
-            painter: StarsPainter(stars: _stars),
-            size: Size.infinite,
-          ),
-          // Main content
-          SafeArea(
-            child: Column(
-              children: [
-                // Custom app bar
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0A4A6F),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(
-                              0xFF22D3EE,
-                            ).withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_rounded,
-                            color: Color(0xFFE0E0E0),
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        _user != null ? 'My Account' : 'Account',
-                        style: GoogleFonts.comicNeue(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFE0E0E0),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Content
-                Expanded(
-                  child: _loading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF22D3EE),
-                          ),
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              if (_user != null)
-                                _buildLoggedInView()
-                              else
-                                _buildLoginView(),
-                              if (_error != null) ...[
-                                const SizedBox(height: 16),
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFFEF4444,
-                                    ).withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFFEF4444),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.error,
-                                        color: Color(0xFFEF4444),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _error!,
-                                          style: GoogleFonts.comicNeue(
-                                            color: const Color(0xFFEF4444),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              if (_success != null) ...[
-                                const SizedBox(height: 16),
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF2DD4BF,
-                                    ).withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFF2DD4BF),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle,
-                                        color: Color(0xFF2DD4BF),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _success!,
-                                          style: GoogleFonts.comicNeue(
-                                            color: const Color(0xFF2DD4BF),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                ),
-              ],
+            // Animated stars
+            CustomPaint(
+              painter: StarsPainter(stars: _stars),
+              size: Size.infinite,
             ),
-          ),
-        ],
+            // Main content
+            SafeArea(
+              child: Column(
+                children: [
+                  // Custom app bar
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0A4A6F),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF22D3EE,
+                              ).withValues(alpha: 0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Color(0xFFE0E0E0),
+                            ),
+                            onPressed: () {
+                              // If coming from join_room without being signed in,
+                              // go back to main menu instead of join screen
+                              if (widget.returnTo == 'join_room' &&
+                                  _user == null) {
+                                Navigator.of(
+                                  context,
+                                ).popUntil((route) => route.isFirst);
+                              } else {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          _user != null ? 'My Account' : 'Account',
+                          style: GoogleFonts.comicNeue(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFE0E0E0),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Content
+                  Expanded(
+                    child: _loading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF22D3EE),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (_user != null)
+                                  _buildLoggedInView()
+                                else
+                                  _buildLoginView(),
+                                if (_error != null) ...[
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFFEF4444,
+                                      ).withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFFEF4444),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.error,
+                                          color: Color(0xFFEF4444),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _error!,
+                                            style: GoogleFonts.comicNeue(
+                                              color: const Color(0xFFEF4444),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                if (_success != null) ...[
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF2DD4BF,
+                                      ).withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFF2DD4BF),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Color(0xFF2DD4BF),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _success!,
+                                            style: GoogleFonts.comicNeue(
+                                              color: const Color(0xFF2DD4BF),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
