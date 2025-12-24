@@ -101,13 +101,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen>
           MaterialPageRoute(
             builder: (_) => const AuthScreen(returnTo: 'join_room'),
           ),
-        ).then((_) {
-          // After returning from auth, check if user is authenticated
-          if (mounted && FirebaseAuth.instance.currentUser == null) {
-            // User is still not authenticated, pop this screen
-            Navigator.of(context).pop();
-          }
-        });
+        );
       }
     });
   }

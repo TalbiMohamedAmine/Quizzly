@@ -6,7 +6,7 @@ class RoomService {
   final _firestore = FirebaseFirestore.instance;
 
   String _generateCode() {
-    const chars = '0123456789';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final rand = Random();
     return List.generate(6, (_) => chars[rand.nextInt(chars.length)]).join();
   }

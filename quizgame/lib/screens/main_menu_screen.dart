@@ -7,7 +7,6 @@ import '../services/auth_service.dart';
 import 'auth_screen.dart';
 import 'join_room_screen.dart';
 import 'lobby_screen.dart';
-import 'quiz_mode_selection_screen.dart';
 
 // Star model for the animated background
 class Star {
@@ -41,7 +40,6 @@ class _MainMenuScreenState extends State<MainMenuScreen>
   final _roomService = RoomService();
   final _authService = AuthService();
   bool _creatingRoom = false;
-  bool _joiningRoom = false;
 
   @override
   void initState() {
@@ -98,19 +96,6 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     Navigator.of(context).pushNamed(AuthScreen.routeName);
   }
 
-  Future<void> _joinRoom(BuildContext context) async {
-    setState(() => _joiningRoom = true);
-
-    try {
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) {
-        Navigator.of(context).pushNamed(JoinRoomScreen.routeName);
-      }
-    } finally {
-      if (mounted) setState(() => _joiningRoom = false);
-    }
-  }
-
   Future<void> _createRoom() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -140,12 +125,9 @@ class _MainMenuScreenState extends State<MainMenuScreen>
       );
 
       if (!mounted) return;
-      // Navigate to quiz mode selection 
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => QuizModeSelectionScreen(roomId: room.code),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => LobbyScreen(roomId: room.id)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -326,8 +308,11 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                   context,
                                   icon: Icons.groups_rounded,
                                   label: 'Join Room',
-                                  isLoading: _joiningRoom,
-                                  onTap: _joiningRoom ? null : () => _joinRoom(context),
+                                  onTap: () {
+                                    Navigator.of(
+                                      context,
+                                    ).pushNamed(JoinRoomScreen.routeName);
+                                  },
                                 ),
                               ],
                             ),
