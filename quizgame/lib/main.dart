@@ -4,6 +4,8 @@ import 'firebase_options.dart';
 import 'screens/main_menu_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/join_room_screen.dart';
+import 'screens/quiz_play_screen.dart';
+import 'models/question.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +55,18 @@ class MyApp extends StatelessWidget {
       routes: {
         AuthScreen.routeName: (_) => const AuthScreen(),
         JoinRoomScreen.routeName: (_) => const JoinRoomScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == 'quiz_play') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (context) => QuizPlayScreen(
+              roomId: args['roomId'] as String,
+              questions: args['questions'] as List<Question>,
+            ),
+          );
+        }
+        return null;
       },
     );
   }

@@ -17,6 +17,7 @@ dependencies:
   google_fonts: ^6.2.1
   qr_flutter: ^4.1.0
   share_plus: ^10.1.4
+  google_generative_ai: ^0.4.7
 dev_dependencies:
   flutter_test:
     sdk: flutter
