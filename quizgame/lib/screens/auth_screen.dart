@@ -1,7 +1,59 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+
+// Star model for the animated background
+class Star {
+  double x;
+  double y;
+  double size;
+  double speed;
+  double opacity;
+
+  Star({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.speed,
+    required this.opacity,
+  });
+}
+
+// Custom painter for rendering animated stars
+class StarsPainter extends CustomPainter {
+  final List<Star> stars;
+
+  StarsPainter({required this.stars});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var star in stars) {
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: star.opacity)
+        ..style = PaintingStyle.fill;
+
+      // Draw star with a subtle glow effect
+      final glowPaint = Paint()
+        ..color = Colors.white.withValues(alpha: star.opacity * 0.3)
+        ..style = PaintingStyle.fill
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+
+      final x = star.x * size.width;
+      final y = star.y * size.height;
+
+      // Draw glow
+      canvas.drawCircle(Offset(x, y), star.size * 2, glowPaint);
+      // Draw star
+      canvas.drawCircle(Offset(x, y), star.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant StarsPainter oldDelegate) => true;
+}
 
 // Avatar picker widget
 class AvatarPicker extends StatelessWidget {
@@ -24,9 +76,11 @@ class AvatarPicker extends StatelessWidget {
         if (showLabel) ...[
           Text(
             'Choose Your Avatar',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+            style: GoogleFonts.comicNeue(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFE0E0E0),
+            ),
           ),
           const SizedBox(height: 12),
         ],
@@ -59,6 +113,20 @@ class AvatarPicker extends StatelessWidget {
                       top: isSelected ? 5 : 15,
                       bottom: isSelected ? 5 : 15,
                     ),
+                    decoration: isSelected
+                        ? BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF22D3EE,
+                                ).withValues(alpha: 0.6),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          )
+                        : null,
                     child: Image.asset(
                       'lib/assets/$avatar',
                       fit: BoxFit.contain,
@@ -73,7 +141,11 @@ class AvatarPicker extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Please select an avatar to continue',
-            style: TextStyle(color: Colors.red.shade400, fontSize: 12),
+            style: GoogleFonts.comicNeue(
+              color: const Color(0xFFFF6B6B),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ],
@@ -87,17 +159,17 @@ class AuthScreen extends StatefulWidget {
   final String? returnTo; // 'join_room', 'create_room', or null
   final String? roomId; // for returning to lobby after creating room
 
-  const AuthScreen({
-    super.key,
-    this.returnTo,
-    this.roomId,
-  });
+  const AuthScreen({super.key, this.returnTo, this.roomId});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late List<Star> _stars;
+  final Random _random = Random();
   final _authService = AuthService();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -117,8 +189,48 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    _stars = _generateStars(50);
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat();
+    _animController.addListener(_updateStars);
     _user = _authService.currentUser;
     _loadCurrentAvatar();
+  }
+
+  List<Star> _generateStars(int count) {
+    return List.generate(count, (_) => _createStar(randomY: true));
+  }
+
+  Star _createStar({bool randomY = false}) {
+    return Star(
+      x: _random.nextDouble(),
+      y: randomY ? _random.nextDouble() : 0,
+      size: _random.nextDouble() * 3 + 1,
+      speed: _random.nextDouble() * 0.003 + 0.001,
+      opacity: _random.nextDouble() * 0.6 + 0.4,
+    );
+  }
+
+  void _updateStars() {
+    setState(() {
+      for (var star in _stars) {
+        star.y += star.speed;
+        // Add subtle horizontal drift
+        star.x += (sin(star.y * 10) * 0.0005);
+
+        // Reset star when it goes off screen
+        if (star.y > 1) {
+          star.y = 0;
+          star.x = _random.nextDouble();
+          star.opacity = _random.nextDouble() * 0.6 + 0.4;
+        }
+        // Wrap horizontal position
+        if (star.x < 0) star.x = 1;
+        if (star.x > 1) star.x = 0;
+      }
+    });
   }
 
   Future<void> _loadCurrentAvatar() async {
@@ -135,6 +247,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   void dispose() {
+    _animController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -432,7 +545,19 @@ class _AuthScreenState extends State<AuthScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Change Avatar'),
+          backgroundColor: const Color(0xFF0A4A6F),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFF22D3EE), width: 2),
+          ),
+          title: Text(
+            'Change Avatar',
+            style: GoogleFonts.comicNeue(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFE0E0E0),
+            ),
+          ),
           content: SizedBox(
             width: double.maxFinite,
             height: 350,
@@ -459,13 +584,30 @@ class _AuthScreenState extends State<AuthScreen> {
                     onTap: () {
                       setDialogState(() => tempSelectedAvatar = avatar);
                     },
-                    child: AnimatedScale(
-                      scale: isSelected ? 1.15 : 1.0,
+                    child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOutBack,
-                      child: Image.asset(
-                        'lib/assets/$avatar',
-                        fit: BoxFit.contain,
+                      decoration: isSelected
+                          ? BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF22D3EE,
+                                  ).withValues(alpha: 0.6),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            )
+                          : null,
+                      child: AnimatedScale(
+                        scale: isSelected ? 1.15 : 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutBack,
+                        child: Image.asset(
+                          'lib/assets/$avatar',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   );
@@ -476,13 +618,40 @@ class _AuthScreenState extends State<AuthScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.comicNeue(
+                  color: const Color(0xFFE0E0E0),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            ElevatedButton(
-              onPressed: tempSelectedAvatar != null
-                  ? () => Navigator.of(context).pop(tempSelectedAvatar)
-                  : null,
-              child: const Text('Save'),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2DD4BF), Color(0xFF6366F1)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ElevatedButton(
+                onPressed: tempSelectedAvatar != null
+                    ? () => Navigator.of(context).pop(tempSelectedAvatar)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(
+                  'Save',
+                  style: GoogleFonts.comicNeue(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -522,21 +691,32 @@ class _AuthScreenState extends State<AuthScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Account Info Card
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => _showAvatarChangeDialog(),
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
+        _buildThemedCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _showAvatarChangeDialog(),
+                    child: Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF22D3EE,
+                                ).withValues(alpha: 0.4),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
                             radius: 30,
-                            backgroundColor: Theme.of(context).primaryColor,
+                            backgroundColor: const Color(0xFF2DD4BF),
                             backgroundImage: _currentAvatar != null
                                 ? AssetImage('lib/assets/$_currentAvatar')
                                 : null,
@@ -545,120 +725,134 @@ class _AuthScreenState extends State<AuthScreen> {
                                     displayName.isNotEmpty
                                         ? displayName[0].toUpperCase()
                                         : '?',
-                                    style: const TextStyle(
+                                    style: GoogleFonts.comicNeue(
                                       fontSize: 24,
                                       color: Colors.white,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   )
                                 : null,
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.edit,
-                                size: 14,
-                                color: Colors.white,
-                              ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFD9A223),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 12,
+                              color: Colors.white,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            displayName,
-                            style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: GoogleFonts.comicNeue(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFE0E0E0),
                           ),
-                          if (email != null) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    email,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
+                        ),
+                        if (email != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  email,
+                                  style: GoogleFonts.comicNeue(
+                                    fontSize: 14,
+                                    color: const Color(0xFFB0B0B0),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  emailVerified
-                                      ? Icons.verified
-                                      : Icons.warning,
-                                  size: 16,
-                                  color: emailVerified
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                              ],
-                            ),
-                          ],
-                          if (isAnonymous)
-                            Text(
-                              'Guest Account',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: Colors.grey),
-                            ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                emailVerified ? Icons.verified : Icons.warning,
+                                size: 16,
+                                color: emailVerified
+                                    ? const Color(0xFF2DD4BF)
+                                    : const Color(0xFFD9A223),
+                              ),
+                            ],
+                          ),
                         ],
-                      ),
+                        if (isAnonymous)
+                          Text(
+                            'Guest Account',
+                            style: GoogleFonts.comicNeue(
+                              fontSize: 14,
+                              color: const Color(0xFFB0B0B0),
+                            ),
+                          ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A4A6F),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.refresh, color: Color(0xFF22D3EE)),
                       onPressed: _refreshUser,
                       tooltip: 'Refresh',
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
 
         // Email Verification Section (only for non-anonymous, non-verified users)
         if (!isAnonymous && email != null && !emailVerified) ...[
-          Card(
-            color: Colors.orange.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.email, color: Colors.orange.shade700),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Email Not Verified',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade700,
-                        ),
+          _buildThemedCard(
+            borderColor: const Color(0xFFD9A223),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.email, color: Color(0xFFD9A223)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Email Not Verified',
+                      style: GoogleFonts.comicNeue(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFD9A223),
+                        fontSize: 16,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('Verify your email to secure your account.'),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: _handleSendVerificationEmail,
-                    icon: const Icon(Icons.send),
-                    label: const Text('Send Verification Email'),
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Verify your email to secure your account.',
+                  style: GoogleFonts.comicNeue(color: const Color(0xFFE0E0E0)),
+                ),
+                const SizedBox(height: 12),
+                _buildActionButton(
+                  icon: Icons.send,
+                  label: 'Send Verification Email',
+                  onTap: _handleSendVerificationEmail,
+                  compact: true,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -666,100 +860,98 @@ class _AuthScreenState extends State<AuthScreen> {
 
         // Account Settings Section (only for non-anonymous users)
         if (!isAnonymous) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Account Settings',
-                    style: Theme.of(context).textTheme.titleMedium,
+          _buildThemedCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Account Settings',
+                  style: GoogleFonts.comicNeue(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFE0E0E0),
                   ),
-                  const SizedBox(height: 16),
+                ),
+                const SizedBox(height: 16),
 
-                  // Change Password Section
-                  Text(
-                    'Change Password',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                // Change Password Section
+                Text(
+                  'Change Password',
+                  style: GoogleFonts.comicNeue(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFB0B0B0),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _oldPasswordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Current Password',
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter your current password',
+                ),
+                const SizedBox(height: 12),
+                _buildThemedTextField(
+                  controller: _oldPasswordController,
+                  labelText: 'Current Password',
+                  hintText: 'Enter your current password',
+                  prefixIcon: Icons.lock_outline,
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+                _buildThemedTextField(
+                  controller: _newPasswordController,
+                  labelText: 'New Password',
+                  hintText: 'Enter new password',
+                  prefixIcon: Icons.lock,
+                  obscureText: true,
+                ),
+                const SizedBox(height: 12),
+                _buildThemedTextField(
+                  controller: _confirmPasswordController,
+                  labelText: 'Confirm New Password',
+                  hintText: 'Re-enter new password',
+                  prefixIcon: Icons.lock,
+                  obscureText: true,
+                ),
+                const SizedBox(height: 16),
+                _buildActionButton(
+                  icon: Icons.key,
+                  label: 'Update Password',
+                  onTap: _handleUpdatePassword,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.help_outline,
+                      size: 16,
+                      color: Color(0xFFB0B0B0),
                     ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _newPasswordController,
-                    decoration: const InputDecoration(
-                      labelText: 'New Password',
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter new password',
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _confirmPasswordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Confirm New Password',
-                      border: OutlineInputBorder(),
-                      hintText: 'Re-enter new password',
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _handleUpdatePassword,
-                      child: const Text('Update Password'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.help_outline,
-                        size: 16,
-                        color: Colors.grey,
+                    const SizedBox(width: 4),
+                    Text(
+                      'Forgot your password? ',
+                      style: GoogleFonts.comicNeue(
+                        color: const Color(0xFFB0B0B0),
                       ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        'Forgot your password? ',
-                        style: TextStyle(color: Colors.grey),
+                    ),
+                    GestureDetector(
+                      onTap: _handleSendPasswordReset,
+                      child: Text(
+                        'Send Reset Email',
+                        style: GoogleFonts.comicNeue(
+                          color: const Color(0xFF22D3EE),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      TextButton(
-                        onPressed: _handleSendPasswordReset,
-                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                        child: const Text('Send Reset Email'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
         ],
 
         // Sign Out Button
-        ElevatedButton.icon(
-          onPressed: _handleSignOut,
-          icon: const Icon(Icons.logout),
-          label: const Text('Sign Out'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
+        _buildActionButton(
+          icon: Icons.logout,
+          label: 'Sign Out',
+          onTap: _handleSignOut,
+          isDestructive: true,
         ),
       ],
     );
@@ -773,43 +965,39 @@ class _AuthScreenState extends State<AuthScreen> {
         if (_authMode == 'signup') ...[
           Text(
             'Create Account',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: GoogleFonts.comicNeue(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFE0E0E0),
+            ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Sign up to save your progress and compete with friends!',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: GoogleFonts.comicNeue(
+              fontSize: 14,
+              color: const Color(0xFFB0B0B0),
+            ),
           ),
           const SizedBox(height: 24),
-          TextField(
+          _buildThemedTextField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Name (used in game)',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.person),
-            ),
+            labelText: 'Name (used in game)',
+            prefixIcon: Icons.person,
           ),
           const SizedBox(height: 12),
-          TextField(
+          _buildThemedTextField(
             controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.email),
-            ),
+            labelText: 'Email',
+            prefixIcon: Icons.email,
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 12),
-          TextField(
+          _buildThemedTextField(
             controller: _passwordController,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.lock),
-            ),
+            labelText: 'Password',
+            prefixIcon: Icons.lock,
             obscureText: true,
           ),
           const SizedBox(height: 16),
@@ -819,41 +1007,44 @@ class _AuthScreenState extends State<AuthScreen> {
                 setState(() => _selectedAvatar = avatar),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _handleEmailSignUp,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text('Sign Up'),
-            ),
+          _buildActionButton(
+            icon: Icons.person_add,
+            label: 'Sign Up',
+            onTap: _handleEmailSignUp,
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Already have an account? '),
-              TextButton(
-                onPressed: () => setState(() => _authMode = 'login'),
-                child: const Text('Log In'),
+              Text(
+                'Already have an account? ',
+                style: GoogleFonts.comicNeue(color: const Color(0xFFB0B0B0)),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _authMode = 'login'),
+                child: Text(
+                  'Log In',
+                  style: GoogleFonts.comicNeue(
+                    color: const Color(0xFF22D3EE),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
-          const Divider(height: 32),
-          OutlinedButton.icon(
-            onPressed: _handleGoogleSignIn,
-            icon: const Icon(Icons.g_mobiledata, size: 24),
-            label: const Text('Continue with Google'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 24),
+          _buildSecondaryButton(
+            icon: Icons.g_mobiledata,
+            label: 'Continue with Google',
+            onTap: _handleGoogleSignIn,
           ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => setState(() => _authMode = 'guest'),
-            icon: const Icon(Icons.person_outline),
-            label: const Text('Continue as Guest'),
+          const SizedBox(height: 12),
+          _buildTextButton(
+            icon: Icons.person_outline,
+            label: 'Continue as Guest',
+            onTap: () => setState(() => _authMode = 'guest'),
           ),
         ],
 
@@ -861,72 +1052,74 @@ class _AuthScreenState extends State<AuthScreen> {
         if (_authMode == 'login') ...[
           Text(
             'Welcome Back',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: GoogleFonts.comicNeue(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFE0E0E0),
+            ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Log in to your account',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: GoogleFonts.comicNeue(
+              fontSize: 14,
+              color: const Color(0xFFB0B0B0),
+            ),
           ),
           const SizedBox(height: 24),
-          TextField(
+          _buildThemedTextField(
             controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.email),
-            ),
+            labelText: 'Email',
+            prefixIcon: Icons.email,
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 12),
-          TextField(
+          _buildThemedTextField(
             controller: _passwordController,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.lock),
-            ),
+            labelText: 'Password',
+            prefixIcon: Icons.lock,
             obscureText: true,
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _handleEmailSignIn,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text('Log In'),
-            ),
+          _buildActionButton(
+            icon: Icons.login,
+            label: 'Log In',
+            onTap: _handleEmailSignIn,
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text("Don't have an account? "),
-              TextButton(
-                onPressed: () => setState(() => _authMode = 'signup'),
-                child: const Text('Sign Up'),
+              Text(
+                "Don't have an account? ",
+                style: GoogleFonts.comicNeue(color: const Color(0xFFB0B0B0)),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _authMode = 'signup'),
+                child: Text(
+                  'Sign Up',
+                  style: GoogleFonts.comicNeue(
+                    color: const Color(0xFF22D3EE),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
-          const Divider(height: 32),
-          OutlinedButton.icon(
-            onPressed: _handleGoogleSignIn,
-            icon: const Icon(Icons.g_mobiledata, size: 24),
-            label: const Text('Continue with Google'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            ),
+          const SizedBox(height: 24),
+          _buildDivider(),
+          const SizedBox(height: 24),
+          _buildSecondaryButton(
+            icon: Icons.g_mobiledata,
+            label: 'Continue with Google',
+            onTap: _handleGoogleSignIn,
           ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => setState(() => _authMode = 'guest'),
-            icon: const Icon(Icons.person_outline),
-            label: const Text('Continue as Guest'),
+          const SizedBox(height: 12),
+          _buildTextButton(
+            icon: Icons.person_outline,
+            label: 'Continue as Guest',
+            onTap: () => setState(() => _authMode = 'guest'),
           ),
         ],
 
@@ -934,25 +1127,27 @@ class _AuthScreenState extends State<AuthScreen> {
         if (_authMode == 'guest') ...[
           Text(
             'Play as Guest',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: GoogleFonts.comicNeue(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFE0E0E0),
+            ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Enter a name to use in the game. Your progress won\'t be saved.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
+            style: GoogleFonts.comicNeue(
+              fontSize: 14,
+              color: const Color(0xFFB0B0B0),
+            ),
           ),
           const SizedBox(height: 24),
-          TextField(
+          _buildThemedTextField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Your Name',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.person),
-              hintText: 'Enter name to show in game',
-            ),
+            labelText: 'Your Name',
+            hintText: 'Enter name to show in game',
+            prefixIcon: Icons.person,
           ),
           const SizedBox(height: 16),
           AvatarPicker(
@@ -961,34 +1156,48 @@ class _AuthScreenState extends State<AuthScreen> {
                 setState(() => _selectedAvatar = avatar),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _handleAnonymous,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text('Continue as Guest'),
-            ),
+          _buildActionButton(
+            icon: Icons.play_arrow,
+            label: 'Continue as Guest',
+            onTap: _handleAnonymous,
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Want to save progress? '),
-              TextButton(
-                onPressed: () => setState(() => _authMode = 'signup'),
-                child: const Text('Create Account'),
+              Text(
+                'Want to save progress? ',
+                style: GoogleFonts.comicNeue(color: const Color(0xFFB0B0B0)),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _authMode = 'signup'),
+                child: Text(
+                  'Create Account',
+                  style: GoogleFonts.comicNeue(
+                    color: const Color(0xFF22D3EE),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Already have an account? '),
-              TextButton(
-                onPressed: () => setState(() => _authMode = 'login'),
-                child: const Text('Log In'),
+              Text(
+                'Already have an account? ',
+                style: GoogleFonts.comicNeue(color: const Color(0xFFB0B0B0)),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _authMode = 'login'),
+                child: Text(
+                  'Log In',
+                  style: GoogleFonts.comicNeue(
+                    color: const Color(0xFF22D3EE),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
@@ -997,67 +1206,393 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+  // Helper widgets for themed UI
+  Widget _buildThemedCard({required Widget child, Color? borderColor}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A4A6F).withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: borderColor ?? const Color(0xFF22D3EE).withValues(alpha: 0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF000000).withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(_user != null ? 'My Account' : 'Account')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              if (_user != null) _buildLoggedInView() else _buildLoginView(),
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error, color: Colors.red.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: TextStyle(color: Colors.red.shade700),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (_success != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _success!,
-                          style: TextStyle(color: Colors.green.shade700),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
+  Widget _buildThemedTextField({
+    required TextEditingController controller,
+    required String labelText,
+    String? hintText,
+    IconData? prefixIcon,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      style: GoogleFonts.comicNeue(
+        color: const Color(0xFFE0E0E0),
+        fontSize: 16,
+      ),
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        labelStyle: GoogleFonts.comicNeue(color: const Color(0xFFB0B0B0)),
+        hintStyle: GoogleFonts.comicNeue(color: const Color(0xFF808080)),
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: const Color(0xFF22D3EE))
+            : null,
+        filled: true,
+        fillColor: const Color(0xFF0A4A6F).withValues(alpha: 0.6),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: const Color(0xFF22D3EE).withValues(alpha: 0.3),
+            width: 2,
           ),
         ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+    bool isDestructive = false,
+    bool compact = false,
+  }) {
+    final gradient = isDestructive
+        ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)])
+        : const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xFF2DD4BF), Color(0xFF6366F1)],
+          );
+
+    final borderColor = isDestructive
+        ? const Color(0xFFEF4444)
+        : const Color(0xFF22D3EE);
+
+    return Container(
+      width: compact ? null : double.infinity,
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: borderColor, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: borderColor.withValues(alpha: 0.4),
+            blurRadius: 16,
+            spreadRadius: 2,
+            offset: const Offset(0, 0),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: compact ? 12 : 16,
+              horizontal: compact ? 20 : 28,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+              children: [
+                Icon(icon, color: const Color(0xFFE0E0E0), size: 22),
+                const SizedBox(width: 10),
+                Text(
+                  label.toUpperCase(),
+                  style: GoogleFonts.comicNeue(
+                    fontSize: compact ? 14 : 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFE0E0E0),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: const Color(0xFF22D3EE).withValues(alpha: 0.5),
+          width: 2,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: const Color(0xFF22D3EE), size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  label,
+                  style: GoogleFonts.comicNeue(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFE0E0E0),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextButton({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFFB0B0B0), size: 20),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.comicNeue(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFB0B0B0),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1,
+            color: const Color(0xFF22D3EE).withValues(alpha: 0.3),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'OR',
+            style: GoogleFonts.comicNeue(
+              color: const Color(0xFFB0B0B0),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: const Color(0xFF22D3EE).withValues(alpha: 0.3),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF05396B), Color(0xFF0E5F88)],
+              ),
+            ),
+          ),
+          // Animated stars
+          CustomPaint(
+            painter: StarsPainter(stars: _stars),
+            size: Size.infinite,
+          ),
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                // Custom app bar
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0A4A6F),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(
+                              0xFF22D3EE,
+                            ).withValues(alpha: 0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Color(0xFFE0E0E0),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        _user != null ? 'My Account' : 'Account',
+                        style: GoogleFonts.comicNeue(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFE0E0E0),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: _loading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF22D3EE),
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              if (_user != null)
+                                _buildLoggedInView()
+                              else
+                                _buildLoginView(),
+                              if (_error != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFFEF4444,
+                                    ).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFEF4444),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.error,
+                                        color: Color(0xFFEF4444),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _error!,
+                                          style: GoogleFonts.comicNeue(
+                                            color: const Color(0xFFEF4444),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (_success != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF2DD4BF,
+                                    ).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFF2DD4BF),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Color(0xFF2DD4BF),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _success!,
+                                          style: GoogleFonts.comicNeue(
+                                            color: const Color(0xFF2DD4BF),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
