@@ -1,9 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/room_service.dart';
+import '../services/auth_service.dart';
 import 'auth_screen.dart';
-import 'create_room_screen.dart';
 import 'join_room_screen.dart';
+import 'lobby_screen.dart';
 
 // Star model for the animated background
 class Star {
@@ -34,6 +37,9 @@ class _MainMenuScreenState extends State<MainMenuScreen>
   late AnimationController _controller;
   late List<Star> _stars;
   final Random _random = Random();
+  final _roomService = RoomService();
+  final _authService = AuthService();
+  bool _creatingRoom = false;
 
   @override
   void initState() {
@@ -88,6 +94,40 @@ class _MainMenuScreenState extends State<MainMenuScreen>
 
   void _openAuth(BuildContext context) {
     Navigator.of(context).pushNamed(AuthScreen.routeName);
+  }
+
+  Future<void> _createRoom() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // Redirect to auth if not signed in
+      Navigator.of(context).pushNamed(AuthScreen.routeName);
+      return;
+    }
+
+    setState(() => _creatingRoom = true);
+
+    try {
+      final hostName = user.displayName ?? 'Guest';
+      final hostAvatar = await _authService.getUserAvatar();
+      final room = await _roomService.createRoom(
+        hostId: user.uid,
+        hostName: hostName,
+        maxPlayers: 10,
+        hostAvatar: hostAvatar,
+      );
+
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => LobbyScreen(roomId: room.id)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to create room')));
+    } finally {
+      if (mounted) setState(() => _creatingRoom = false);
+    }
   }
 
   @override
@@ -219,11 +259,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                   context,
                                   icon: Icons.add_circle_outline_rounded,
                                   label: 'Create Room',
-                                  onTap: () {
-                                    Navigator.of(
-                                      context,
-                                    ).pushNamed(CreateRoomScreen.routeName);
-                                  },
+                                  isLoading: _creatingRoom,
+                                  onTap: _creatingRoom ? null : _createRoom,
                                 ),
                                 const SizedBox(height: 20),
                                 _buildMenuButton(
@@ -278,7 +315,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
     BuildContext context, {
     required IconData icon,
     required String label,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
+    bool isLoading = false,
   }) {
     return Container(
       width: 280,
@@ -317,22 +355,31 @@ class _MainMenuScreenState extends State<MainMenuScreen>
           borderRadius: BorderRadius.circular(30),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: const Color(0xFFE0E0E0), size: 26),
-                const SizedBox(width: 12),
-                Text(
-                  label.toUpperCase(),
-                  style: GoogleFonts.comicNeue(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFFE0E0E0),
-                    letterSpacing: 1.2,
+            child: isLoading
+                ? const SizedBox(
+                    height: 26,
+                    width: 26,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: Color(0xFFE0E0E0),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: const Color(0xFFE0E0E0), size: 26),
+                      const SizedBox(width: 12),
+                      Text(
+                        label.toUpperCase(),
+                        style: GoogleFonts.comicNeue(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFE0E0E0),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
