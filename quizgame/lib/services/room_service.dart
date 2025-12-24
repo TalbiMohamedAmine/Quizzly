@@ -115,4 +115,53 @@ class RoomService {
       }
     });
   }
+
+  /// Update room settings (host only)
+  Future<void> updateRoomSettings({
+    required String roomId,
+    int? tourTime,
+    int? numberOfRounds,
+    int? maxPlayers,
+    bool? tvSettings,
+    bool? regulatorSetting,
+    List<String>? selectedCategories,
+  }) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    
+    final Map<String, dynamic> updates = {};
+    if (tourTime != null) updates['tourTime'] = tourTime;
+    if (numberOfRounds != null) updates['numberOfRounds'] = numberOfRounds;
+    if (maxPlayers != null) updates['maxPlayers'] = maxPlayers;
+    if (tvSettings != null) updates['tvSettings'] = tvSettings;
+    if (regulatorSetting != null) updates['regulatorSetting'] = regulatorSetting;
+    if (selectedCategories != null) updates['selectedCategories'] = selectedCategories;
+    
+    if (updates.isNotEmpty) {
+      await docRef.update(updates);
+    }
+  }
+
+  /// Toggle a category selection
+  Future<void> toggleCategory({
+    required String roomId,
+    required String category,
+  }) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(docRef);
+      if (!snap.exists) return;
+      
+      final data = snap.data() as Map<String, dynamic>;
+      final categories = List<String>.from(data['selectedCategories'] ?? []);
+      
+      if (categories.contains(category)) {
+        categories.remove(category);
+      } else {
+        categories.add(category);
+      }
+      
+      tx.update(docRef, {'selectedCategories': categories});
+    });
+  }
 }

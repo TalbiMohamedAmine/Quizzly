@@ -9,7 +9,14 @@ class Room {
   final int playerCount;
   final String state;
   final DateTime createdAt;
-  final List<Map<String, dynamic>> players; // NEW
+  final List<Map<String, dynamic>> players;
+  
+  // Game settings
+  final int tourTime; // in seconds
+  final int numberOfRounds;
+  final bool tvSettings;
+  final bool regulatorSetting;
+  final List<String> selectedCategories;
 
   Room({
     required this.id,
@@ -21,6 +28,11 @@ class Room {
     required this.state,
     required this.createdAt,
     required this.players,
+    this.tourTime = 60,
+    this.numberOfRounds = 10,
+    this.tvSettings = false,
+    this.regulatorSetting = false,
+    this.selectedCategories = const [],
   });
 
   factory Room.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -35,6 +47,11 @@ class Room {
       state: data['state'] as String,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       players: List<Map<String, dynamic>>.from(data['players'] ?? []),
+      tourTime: data['tourTime'] as int? ?? 60,
+      numberOfRounds: data['numberOfRounds'] as int? ?? 10,
+      tvSettings: data['tvSettings'] as bool? ?? false,
+      regulatorSetting: data['regulatorSetting'] as bool? ?? false,
+      selectedCategories: List<String>.from(data['selectedCategories'] ?? []),
     );
   }
 
@@ -47,5 +64,10 @@ class Room {
     'state': state,
     'createdAt': Timestamp.fromDate(createdAt),
     'players': players,
+    'tourTime': tourTime,
+    'numberOfRounds': numberOfRounds,
+    'tvSettings': tvSettings,
+    'regulatorSetting': regulatorSetting,
+    'selectedCategories': selectedCategories,
   };
 }
