@@ -247,124 +247,121 @@ class _JoinRoomScreenState extends State<JoinRoomScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
 
-                        // Avatar and code input row
+                        // Bunny avatar
+                        Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF6366F1),
+                                Color(0xFF8B5CF6),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF6366F1,
+                                ).withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'lib/assets/bunny.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 32,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Code input boxes - 6 boxes in a row
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // bunny avatar
-                            Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF6366F1),
-                                    Color(0xFF8B5CF6),
-                                  ],
-                                ),
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF6366F1,
-                                    ).withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
+                          children: List.generate(6, (index) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 3,
                               ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'lib/assets/bunny.png',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 32,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            // Code input boxes - 6 boxes
-                            ...List.generate(6, (index) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 3,
-                                ),
-                                child: SizedBox(
-                                  width: 42,
-                                  height: 54,
-                                  child: RawKeyboardListener(
-                                    focusNode: FocusNode(),
-                                    onKey: (event) =>
-                                        _onKeyPressed(index, event),
-                                    child: TextField(
-                                      controller: _controllers[index],
-                                      focusNode: _focusNodes[index],
-                                      textAlign: TextAlign.center,
-                                      maxLength: 1,
-                                      textCapitalization:
-                                          TextCapitalization.characters,
-                                      style: GoogleFonts.comicNeue(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF2D3748),
-                                      ),
-                                      decoration: InputDecoration(
-                                        counterText: '',
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              vertical: 16,
-                                            ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Color(0xFF22D3EE),
-                                            width: 2,
-                                          ),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Color(0xFF22D3EE),
-                                            width: 2,
-                                          ),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Color(0xFF6366F1),
-                                            width: 3,
-                                          ),
-                                        ),
-                                      ),
-                                      onChanged: (value) =>
-                                          _onCodeChanged(index, value),
+                              child: SizedBox(
+                                width: 40,
+                                height: 50,
+                                child: RawKeyboardListener(
+                                  focusNode: FocusNode(),
+                                  onKey: (event) =>
+                                      _onKeyPressed(index, event),
+                                  child: TextField(
+                                    controller: _controllers[index],
+                                    focusNode: _focusNodes[index],
+                                    textAlign: TextAlign.center,
+                                    maxLength: 1,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    style: GoogleFonts.comicNeue(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF2D3748),
                                     ),
+                                    decoration: InputDecoration(
+                                      counterText: '',
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12,
+                                        ),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF22D3EE),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12,
+                                        ),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF22D3EE),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12,
+                                        ),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF6366F1),
+                                          width: 3,
+                                        ),
+                                      ),
+                                    ),
+                                    onChanged: (value) =>
+                                        _onCodeChanged(index, value),
                                   ),
                                 ),
-                              );
-                            }),
-                          ],
+                              ),
+                            );
+                          }),
                         ),
 
                         if (_error != null) ...[
