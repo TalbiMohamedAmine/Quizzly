@@ -4,10 +4,11 @@ import 'package:http/http.dart' as http;
 import '../models/question.dart';
 
 class QuestionGeneratorService {
-  // Using Gemini API for question generation
-  // You should store this in a secure location (e.g., Firebase Remote Config or environment variable)
-  static const String _apiKey = 'AIzaSyAX3EcmhRO5eUggJGJax7ac-X0XnKzshSU';
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  // Using OpenRouter API for question generation
+  static const String _apiKey = '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';
+  static const String _baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
+  // Using Meta Llama 3.1 8B (free tier)
+  static const String _model = 'xiaomi/mimo-v2-flash:free';
 
   final Random _random = Random();
 
@@ -76,7 +77,7 @@ class QuestionGeneratorService {
     return distribution;
   }
 
-  /// Generates questions for a specific category using Gemini AI
+  /// Generates questions for a specific category using OpenRouter API
   Future<List<Question>> _generateQuestionsForCategory({
     required String category,
     required int count,
@@ -89,51 +90,47 @@ Each question must:
 - Have exactly 4 options (A, B, C, D)
 - Have only one correct answer
 - Be suitable for a general audience
-- Vary in difficulty (easy, medium, hard)
 
-Return the response in this exact JSON format:
+Return ONLY valid JSON in this exact format, no other text:
 {
   "questions": [
     {
       "question": "What is the question text?",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correctAnswerIndex": 0,
-      "explanation": "Brief explanation of why this is correct"
+      "explanation": "Brief explanation"
     }
   ]
 }
 
-Important:
-- correctAnswerIndex is 0-based (0 for first option, 1 for second, etc.)
-- Generate exactly $count questions
-- Make sure questions are factually accurate
-- Return only valid JSON, no markdown formatting
+correctAnswerIndex is 0-based (0, 1, 2, or 3).
 ''';
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl?key=$_apiKey'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+          'HTTP-Referer': 'https://quiz-duel-1b09b.web.app',
+          'X-Title': 'Quiz Duel Game',
+        },
         body: jsonEncode({
-          'contents': [
+          'model': _model,
+          'messages': [
             {
-              'parts': [
-                {'text': prompt}
-              ]
+              'role': 'user',
+              'content': prompt,
             }
           ],
-          'generationConfig': {
-            'temperature': 0.8,
-            'topK': 40,
-            'topP': 0.95,
-            'maxOutputTokens': 8192,
-          },
+          'temperature': 0.8,
+          'max_tokens': 4096,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final text = data['candidates'][0]['content']['parts'][0]['text'] as String;
+        final text = data['choices'][0]['message']['content'] as String;
         
         // Clean up the response - remove markdown code blocks if present
         String cleanedText = text.trim();
@@ -157,7 +154,7 @@ Important:
         throw Exception('API request failed with status ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('Error calling Gemini API: $e');
+      print('Error calling OpenRouter API: $e');
       rethrow;
     }
   }
