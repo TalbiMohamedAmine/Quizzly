@@ -599,45 +599,51 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
     return SizedBox(
       height: 280, // Fixed height for the podium area
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // 2nd place (moves from center to left)
           if (playerCount > 1 && _isPlaceVisible(2))
             AnimatedBuilder(
               animation: _secondPlacePositionAnimation,
               builder: (context, child) {
-                // Calculate horizontal offset
-                // Moves from center (0) to left (-108 = width + spacing)
-                final offset = -108.0 * _secondPlacePositionAnimation.value;
-                return Transform.translate(
-                  offset: Offset(offset, 0),
-                  child: child,
-                );
+                // Fade in from center position
+                final opacity = _secondPlacePositionAnimation.value < 1.0
+                    ? 1.0
+                    : 1.0;
+                return Opacity(opacity: opacity, child: child);
               },
               child: _buildPodiumPlace(widget.leaderboard[1], 2, 90),
-            ),
+            )
+          else
+            const SizedBox(width: 100),
+
+          const SizedBox(width: 8),
+
+          // 1st place (always in center, appears last)
+          if (playerCount > 0 && _isPlaceVisible(1))
+            _buildPodiumPlace(widget.leaderboard[0], 1, 120)
+          else
+            const SizedBox(width: 100),
+
+          const SizedBox(width: 8),
 
           // 3rd place (moves from center to right)
           if (playerCount > 2 && _isPlaceVisible(3))
             AnimatedBuilder(
               animation: _thirdPlacePositionAnimation,
               builder: (context, child) {
-                // Calculate horizontal offset
-                // Moves from center (0) to right (108 = width + spacing)
-                final offset = 108.0 * _thirdPlacePositionAnimation.value;
-                return Transform.translate(
-                  offset: Offset(offset, 0),
-                  child: child,
-                );
+                // Fade in from center position
+                final opacity = _thirdPlacePositionAnimation.value < 1.0
+                    ? 1.0
+                    : 1.0;
+                return Opacity(opacity: opacity, child: child);
               },
               child: _buildPodiumPlace(widget.leaderboard[2], 3, 70),
-            ),
-
-          // 1st place (always in center, appears last)
-          if (playerCount > 0 && _isPlaceVisible(1))
-            _buildPodiumPlace(widget.leaderboard[0], 1, 120),
+            )
+          else
+            const SizedBox(width: 100),
         ],
       ),
     );
