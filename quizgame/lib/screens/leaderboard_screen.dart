@@ -609,8 +609,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               animation: _secondPlacePositionAnimation,
               builder: (context, child) {
                 // Fade in from center position
-                final opacity = _secondPlacePositionAnimation.value < 1.0 
-                    ? 1.0 
+                final opacity = _secondPlacePositionAnimation.value < 1.0
+                    ? 1.0
                     : 1.0;
                 return Opacity(opacity: opacity, child: child);
               },
@@ -635,8 +635,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               animation: _thirdPlacePositionAnimation,
               builder: (context, child) {
                 // Fade in from center position
-                final opacity = _thirdPlacePositionAnimation.value < 1.0 
-                    ? 1.0 
+                final opacity = _thirdPlacePositionAnimation.value < 1.0
+                    ? 1.0
                     : 1.0;
                 return Opacity(opacity: opacity, child: child);
               },
