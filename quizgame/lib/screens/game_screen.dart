@@ -31,6 +31,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _countdownStarted = false;
   String? _lastGameState;
   Game? _cachedGame;
+  bool _isAutoAdvancing = false; // Prevents multiple auto-advance triggers
 
   @override
   void initState() {
@@ -102,6 +103,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (!_hasAnswered) {
           _submitTimeUp();
         }
+        // Auto advance to reviewing when timer ends (host triggers it)
+        _autoAdvanceRound();
       }
     });
   }
@@ -111,6 +114,62 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() {
       _hasAnswered = true;
     });
+  }
+
+  /// Automatically advance the round - called when timer ends or all players answered
+  Future<void> _autoAdvanceRound() async {
+    if (_isAutoAdvancing) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    final game = _cachedGame;
+    if (user == null || game == null) return;
+
+    // Only the host can advance the round
+    if (user.uid != game.hostId) return;
+
+    // Only advance if we're still in playing state
+    if (game.state != 'playing') return;
+
+    _isAutoAdvancing = true;
+
+    try {
+      // End the current round (show correct answers briefly)
+      await _gameService.endRound(gameId: widget.gameId);
+
+      // Wait a moment for players to see the correct answer
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (!mounted) return;
+
+      // Check if it's the last round
+      if (game.isLastRound) {
+        await _gameService.showResults(gameId: widget.gameId);
+      } else {
+        await _gameService.nextRound(gameId: widget.gameId);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error advancing round: $e')));
+      }
+    } finally {
+      _isAutoAdvancing = false;
+    }
+  }
+
+  /// Check if all players have answered and auto-advance if so
+  void _checkAllPlayersAnswered(Game game) {
+    if (_isAutoAdvancing) return;
+    if (game.state != 'playing') return;
+
+    final currentRoundAnswers = game.roundAnswers[game.currentRound] ?? [];
+    final totalPlayers = game.playerScores.length;
+
+    if (currentRoundAnswers.length >= totalPlayers && totalPlayers > 0) {
+      // All players have answered - auto advance
+      _autoAdvanceRound();
+    }
   }
 
   Future<void> _submitAnswer(Game game, int optionIndex) async {
@@ -254,6 +313,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 _questionStartTime = null;
                 _hasAnswered = false;
                 _selectedOption = null;
+                _isAutoAdvancing = false;
+              });
+            } else if (game.state == 'playing' &&
+                _lastGameState == 'reviewing') {
+              // Reset for next round after reviewing
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _countdownStarted = false;
+                _questionStartTime = null;
+                _hasAnswered = false;
+                _selectedOption = null;
+                _isAutoAdvancing = false;
               });
             } else if (game.state == 'countdown') {
               // Reset countdown state
@@ -432,6 +502,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         });
       });
     }
+
+    // Check if all players have answered (host will auto-advance)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAllPlayersAnswered(game);
+    });
 
     return Padding(
       padding: const EdgeInsets.all(16),
