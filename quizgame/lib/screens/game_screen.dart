@@ -362,6 +362,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 builder: (_) => LeaderboardScreen(
                   leaderboard: _gameService.getLeaderboard(game),
                   roomId: widget.roomId,
+                  hostId: game.hostId,
                 ),
               ),
             );

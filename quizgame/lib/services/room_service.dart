@@ -127,15 +127,17 @@ class RoomService {
     List<String>? selectedCategories,
   }) async {
     final docRef = _firestore.collection('rooms').doc(roomId);
-    
+
     final Map<String, dynamic> updates = {};
     if (tourTime != null) updates['tourTime'] = tourTime;
     if (numberOfRounds != null) updates['numberOfRounds'] = numberOfRounds;
     if (maxPlayers != null) updates['maxPlayers'] = maxPlayers;
     if (tvSettings != null) updates['tvSettings'] = tvSettings;
-    if (regulatorSetting != null) updates['regulatorSetting'] = regulatorSetting;
-    if (selectedCategories != null) updates['selectedCategories'] = selectedCategories;
-    
+    if (regulatorSetting != null)
+      updates['regulatorSetting'] = regulatorSetting;
+    if (selectedCategories != null)
+      updates['selectedCategories'] = selectedCategories;
+
     if (updates.isNotEmpty) {
       await docRef.update(updates);
     }
@@ -147,20 +149,20 @@ class RoomService {
     required String category,
   }) async {
     final docRef = _firestore.collection('rooms').doc(roomId);
-    
+
     await _firestore.runTransaction((tx) async {
       final snap = await tx.get(docRef);
       if (!snap.exists) return;
-      
+
       final data = snap.data() as Map<String, dynamic>;
       final categories = List<String>.from(data['selectedCategories'] ?? []);
-      
+
       if (categories.contains(category)) {
         categories.remove(category);
       } else {
         categories.add(category);
       }
-      
+
       tx.update(docRef, {'selectedCategories': categories});
     });
   }
@@ -171,19 +173,35 @@ class RoomService {
     required String categoryName,
   }) async {
     final docRef = _firestore.collection('rooms').doc(roomId);
-    
+
     await _firestore.runTransaction((tx) async {
       final snap = await tx.get(docRef);
       if (!snap.exists) return;
-      
+
       final data = snap.data() as Map<String, dynamic>;
-      final customCategories = List<String>.from(data['customCategories'] ?? []);
-      
+      final customCategories = List<String>.from(
+        data['customCategories'] ?? [],
+      );
+
       // Add the custom category if it doesn't already exist
       if (!customCategories.contains(categoryName)) {
         customCategories.add(categoryName);
         tx.update(docRef, {'customCategories': customCategories});
       }
     });
+  }
+
+  /// Reset room for a new game (Play Again feature)
+  /// Keeps the same players but resets the game state
+  Future<void> resetRoomForRematch({required String roomId}) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+
+    await docRef.update({'state': 'waiting', 'gameId': FieldValue.delete()});
+  }
+
+  /// Check if a room exists and is available for rematch
+  Future<bool> isRoomAvailable(String roomId) async {
+    final doc = await _firestore.collection('rooms').doc(roomId).get();
+    return doc.exists;
   }
 }

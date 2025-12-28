@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/game.dart';
+import '../services/room_service.dart';
+import 'lobby_screen.dart';
 
 // Star model for the animated background
 class Star {
@@ -48,12 +52,14 @@ class ConfettiParticle {
 class LeaderboardScreen extends StatefulWidget {
   final List<PlayerScore> leaderboard;
   final String? roomId;
+  final String? hostId;
   final bool showBackToLobby;
 
   const LeaderboardScreen({
     super.key,
     required this.leaderboard,
     this.roomId,
+    this.hostId,
     this.showBackToLobby = true,
   });
 
@@ -122,6 +128,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     const Color(0xFF58D68D), // Green
   ];
 
+  // Play Again state
+  final RoomService _roomService = RoomService();
+  bool _isStartingRematch = false;
+  StreamSubscription? _roomSubscription;
+  bool _hasNavigatedToLobby = false;
+
   @override
   void initState() {
     super.initState();
@@ -131,6 +143,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       duration: const Duration(seconds: 1),
     )..repeat();
     _animController.addListener(_updateStars);
+
+    // Listen to room state changes for Play Again functionality
+    _startRoomListener();
 
     // Initialize individual score controllers with listeners
     _thirdPlaceScoreController = AnimationController(
@@ -221,6 +236,30 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         _startSequencedAnimation();
       }
     });
+  }
+
+  void _startRoomListener() {
+    if (widget.roomId == null) return;
+
+    _roomSubscription = _roomService
+        .watchRoom(widget.roomId!)
+        .listen(
+          (room) {
+            // When room state becomes "waiting", navigate all players to lobby
+            if (room.state == 'waiting' && !_hasNavigatedToLobby && mounted) {
+              _hasNavigatedToLobby = true;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => LobbyScreen(roomId: widget.roomId!),
+                ),
+              );
+            }
+          },
+          onError: (error) {
+            // Room might have been deleted, just ignore
+            debugPrint('Room listener error: $error');
+          },
+        );
   }
 
   void _startSequencedAnimation() async {
@@ -406,6 +445,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
   @override
   void dispose() {
+    _roomSubscription?.cancel();
     _animController.dispose();
     _thirdPlaceScoreController.dispose();
     _secondPlaceScoreController.dispose();
@@ -457,8 +497,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
                   const SizedBox(height: 16),
 
-                  // Back button
-                  if (widget.showBackToLobby) _buildBackButton(),
+                  // Action buttons (Play Again for host, Back to Menu for all)
+                  if (widget.showBackToLobby) _buildActionButtons(),
                 ],
               ),
             ),
@@ -1006,6 +1046,171 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           ),
         ],
       ),
+    );
+  }
+
+  bool get _isHost {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    return currentUser != null && widget.hostId == currentUser.uid;
+  }
+
+  Future<void> _playAgain() async {
+    if (widget.roomId == null || _isStartingRematch) return;
+
+    setState(() => _isStartingRematch = true);
+
+    try {
+      // Check if room still exists
+      final roomExists = await _roomService.isRoomAvailable(widget.roomId!);
+      if (!roomExists) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Room no longer exists')),
+          );
+        }
+        return;
+      }
+
+      // Reset the room for a new game
+      await _roomService.resetRoomForRematch(roomId: widget.roomId!);
+
+      if (!mounted) return;
+
+      // Navigate back to lobby
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => LobbyScreen(roomId: widget.roomId!)),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to start rematch: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isStartingRematch = false);
+      }
+    }
+  }
+
+  Widget _buildActionButtons() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isHost = currentUser != null && widget.hostId == currentUser.uid;
+    final hasRoomId = widget.roomId != null;
+
+    return Column(
+      children: [
+        // Play Again button (only for host with valid roomId)
+        if (isHost && hasRoomId) ...[
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF22D3EE), Color(0xFF0891B2)],
+              ),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: const Color(0xFF22D3EE), width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF22D3EE).withOpacity(0.4),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _isStartingRematch ? null : _playAgain,
+                borderRadius: BorderRadius.circular(30),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_isStartingRematch)
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      else
+                        const Icon(
+                          Icons.replay_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _isStartingRematch ? 'STARTING...' : 'PLAY AGAIN',
+                        style: GoogleFonts.comicNeue(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // Back to Menu button (for everyone)
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFD9A223), Color(0xFFB8891D)],
+            ),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: const Color(0xFFD9A223), width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFD9A223).withOpacity(0.4),
+                blurRadius: 16,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => Navigator.of(context).pop(),
+              borderRadius: BorderRadius.circular(30),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.home_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'BACK TO MENU',
+                      style: GoogleFonts.comicNeue(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
