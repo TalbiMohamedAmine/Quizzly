@@ -17,6 +17,7 @@ class Room {
   final bool tvSettings;
   final bool regulatorSetting;
   final List<String> selectedCategories;
+  final List<String> customCategories;
   
   // Game reference
   final String? gameId;
@@ -36,6 +37,7 @@ class Room {
     this.tvSettings = false,
     this.regulatorSetting = false,
     this.selectedCategories = const [],
+    this.customCategories = const [],
     this.gameId,
   });
 
@@ -56,6 +58,7 @@ class Room {
       tvSettings: data['tvSettings'] as bool? ?? false,
       regulatorSetting: data['regulatorSetting'] as bool? ?? false,
       selectedCategories: List<String>.from(data['selectedCategories'] ?? []),
+      customCategories: List<String>.from(data['customCategories'] ?? []),
       gameId: data['gameId'] as String?,
     );
   }
@@ -74,6 +77,7 @@ class Room {
     'tvSettings': tvSettings,
     'regulatorSetting': regulatorSetting,
     'selectedCategories': selectedCategories,
+    'customCategories': customCategories,
     if (gameId != null) 'gameId': gameId,
   };
 }

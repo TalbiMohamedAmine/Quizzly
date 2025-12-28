@@ -202,15 +202,6 @@ class _JoinRoomScreenState extends State<JoinRoomScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF05396B),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // Background gradient
@@ -237,7 +228,36 @@ class _JoinRoomScreenState extends State<JoinRoomScreen>
           // Main content wrapped in RepaintBoundary
           RepaintBoundary(
             child: SafeArea(
-              child: Center(
+              child: Column(
+                children: [
+                  // Custom header with back button
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0A4A6F),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF22D3EE).withValues(alpha: 0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Color(0xFFE0E0E0),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Main content
+                  Expanded(
+                    child: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Container(
@@ -464,6 +484,9 @@ class _JoinRoomScreenState extends State<JoinRoomScreen>
                     ),
                   ),
                 ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

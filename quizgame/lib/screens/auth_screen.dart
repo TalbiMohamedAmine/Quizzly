@@ -558,6 +558,10 @@ class _AuthScreenState extends State<AuthScreen>
 
   Future<void> _handleAnonymous() async {
     final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = 'Name is required');
+      return;
+    }
     if (_selectedAvatar == null) {
       setState(() => _error = 'Please select an avatar');
       return;
@@ -570,9 +574,7 @@ class _AuthScreenState extends State<AuthScreen>
     try {
       final user = await _authService.signInAnonymously();
       if (user != null) {
-        if (name.isNotEmpty) {
-          await _updateDisplayName(user, name);
-        }
+        await _updateDisplayName(user, name);
         await _authService.saveUserAvatar(_selectedAvatar!);
         _currentAvatar = _selectedAvatar;
         if (mounted) {

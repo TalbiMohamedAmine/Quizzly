@@ -164,4 +164,26 @@ class RoomService {
       tx.update(docRef, {'selectedCategories': categories});
     });
   }
+
+  /// Add a custom category to the room's available categories
+  Future<void> addCustomCategory({
+    required String roomId,
+    required String categoryName,
+  }) async {
+    final docRef = _firestore.collection('rooms').doc(roomId);
+    
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(docRef);
+      if (!snap.exists) return;
+      
+      final data = snap.data() as Map<String, dynamic>;
+      final customCategories = List<String>.from(data['customCategories'] ?? []);
+      
+      // Add the custom category if it doesn't already exist
+      if (!customCategories.contains(categoryName)) {
+        customCategories.add(categoryName);
+        tx.update(docRef, {'customCategories': customCategories});
+      }
+    });
+  }
 }

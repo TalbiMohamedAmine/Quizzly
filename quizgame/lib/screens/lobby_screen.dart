@@ -533,8 +533,8 @@ class _LobbyScreenState extends State<LobbyScreen> {
         _buildDropdownSetting(
           label: 'player',
           value: room.maxPlayers,
-          items: [2, 3, 4, 5, 6, 7, 8, 9, 10],
-          suffix: 'Number of players:',
+          items: [5, 10, 20, 25, 30, 50],
+          suffix: 'Max players:',
           onChanged: (val) {
             _roomService.updateRoomSettings(
               roomId: widget.roomId,
@@ -544,22 +544,11 @@ class _LobbyScreenState extends State<LobbyScreen> {
         ),
         const SizedBox(height: 20),
 
-        // TV Settings toggle
-        _buildToggleSetting(
-          label: 'TV settings:',
-          value: room.tvSettings,
-          onChanged: (val) {
-            _roomService.updateRoomSettings(
-              roomId: widget.roomId,
-              tvSettings: val,
-            );
-          },
-        ),
+        
         const SizedBox(height: 12),
-
         // Regulator setting toggle
         _buildToggleSetting(
-          label: 'Regulator setting:',
+          label: 'Regulator setting',
           value: room.regulatorSetting,
           onChanged: (val) {
             _roomService.updateRoomSettings(
@@ -828,12 +817,26 @@ class _LobbyScreenState extends State<LobbyScreen> {
       roomId: widget.roomId,
       selectedCategories: room.selectedCategories,
       allCategories: _allCategories,
+      customCategories: room.customCategories,
       roomService: _roomService,
     );
   }
 
   Future<void> _startGame(Room room) async {
     if (_startingGame) return;
+
+    // Check if regulator setting is enabled and there are no other players
+    if (room.regulatorSetting && room.playerCount <= 1) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Regulator mode activated! At least one other player is needed.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
 
     setState(() => _startingGame = true);
 
@@ -1098,12 +1101,14 @@ class _CategoriesGrid extends StatefulWidget {
   final String roomId;
   final List<String> selectedCategories;
   final List<String> allCategories;
+  final List<String> customCategories;
   final RoomService roomService;
 
   const _CategoriesGrid({
     required this.roomId,
     required this.selectedCategories,
     required this.allCategories,
+    required this.customCategories,
     required this.roomService,
   });
 
@@ -1113,12 +1118,14 @@ class _CategoriesGrid extends StatefulWidget {
 
 class _CategoriesGridState extends State<_CategoriesGrid> {
   late Set<String> _localCategories;
+  late List<String> _localCustomCategories;
   Set<String> _pendingToggles = {};
 
   @override
   void initState() {
     super.initState();
     _localCategories = widget.selectedCategories.toSet();
+    _localCustomCategories = List<String>.from(widget.customCategories);
   }
 
   @override
@@ -1127,10 +1134,12 @@ class _CategoriesGridState extends State<_CategoriesGrid> {
     // Only sync categories that are NOT currently being toggled
     if (_pendingToggles.isEmpty) {
       _localCategories = widget.selectedCategories.toSet();
+      _localCustomCategories = List<String>.from(widget.customCategories);
     } else {
       // Merge server state but keep pending toggles
       final serverCategories = widget.selectedCategories.toSet();
-      for (final name in widget.allCategories) {
+      final allCats = [...widget.allCategories, ...widget.customCategories];
+      for (final name in allCats) {
         if (!_pendingToggles.contains(name)) {
           if (serverCategories.contains(name)) {
             _localCategories.add(name);
@@ -1139,6 +1148,8 @@ class _CategoriesGridState extends State<_CategoriesGrid> {
           }
         }
       }
+      // Update custom categories
+      _localCustomCategories = List<String>.from(widget.customCategories);
     }
   }
 
@@ -1164,50 +1175,202 @@ class _CategoriesGridState extends State<_CategoriesGrid> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: widget.allCategories.map((name) {
-        final isSelected = _localCategories.contains(name);
-
-        return GestureDetector(
-          onTap: () => _toggleCategory(name),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFF6366F1)
-                  : const Color(0xFF0A4A6F),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isSelected
-                    ? const Color(0xFF22D3EE)
-                    : const Color(0xFF22D3EE).withOpacity(0.2),
+  void _showAddCustomCategoryDialog() {
+    final controller = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0E5F88),
+        title: const Text(
+          'Add Custom Category',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Enter category name',
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(
+                color: Color(0xFF22D3EE),
                 width: 2,
               ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF6366F1).withOpacity(0.3),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              name,
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(
+                color: Color(0xFF22D3EE),
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          cursorColor: const Color(0xFF22D3EE),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF22D3EE)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final categoryName = controller.text.trim();
+              if (categoryName.isNotEmpty && 
+                  !_localCustomCategories.contains(categoryName) &&
+                  !widget.allCategories.contains(categoryName)) {
+                await widget.roomService.addCustomCategory(
+                  roomId: widget.roomId,
+                  categoryName: categoryName,
+                );
+                // Auto-select the custom category
+                await widget.roomService.toggleCategory(
+                  roomId: widget.roomId,
+                  category: categoryName,
+                );
+                if (mounted) {
+                  setState(() {
+                    _localCustomCategories.add(categoryName);
+                    _localCategories.add(categoryName);
+                  });
+                  Navigator.pop(context);
+                }
+              } else if (categoryName.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter a category name')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('This category already exists')),
+                );
+              }
+            },
+            child: const Text(
+              'Add',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: Color(0xFF2DD4BF),
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
-        );
-      }).toList(),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Custom categories first, then all categories
+    final allCategoriesToDisplay = [
+      ..._localCustomCategories,
+      ...widget.allCategories,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            // Add custom category button
+            GestureDetector(
+              onTap: _showAddCustomCategoryDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0A4A6F),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF2DD4BF),
+                    width: 2,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, color: Color(0xFF2DD4BF), size: 18),
+                    SizedBox(width: 6),
+                    Text(
+                      'Add Custom',
+                      style: TextStyle(
+                        color: Color(0xFF2DD4BF),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // All categories (custom first, then default)
+            ...allCategoriesToDisplay.map((name) {
+              final isSelected = _localCategories.contains(name);
+              final isCustom = _localCustomCategories.contains(name);
+
+              return GestureDetector(
+                onTap: () => _toggleCategory(name),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF6366F1)
+                        : const Color(0xFF0A4A6F),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF22D3EE)
+                          : isCustom
+                            ? const Color(0xFF2DD4BF).withOpacity(0.5)
+                            : const Color(0xFF22D3EE).withOpacity(0.2),
+                      width: 2,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF6366F1).withOpacity(0.3),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                      if (isCustom)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(
+                            Icons.star,
+                            color: Color(0xFF2DD4BF),
+                            size: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ],
     );
   }
 }

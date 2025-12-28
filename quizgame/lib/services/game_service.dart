@@ -29,6 +29,12 @@ class GameService {
       final playerScores = <String, PlayerScore>{};
       for (final player in room.players) {
         final uid = player['uid'] as String;
+        
+        // Skip host if regulator setting is enabled
+        if (room.regulatorSetting && uid == room.hostId) {
+          continue;
+        }
+        
         playerScores[uid] = PlayerScore(
           odbc: uid,
           name: player['name'] as String? ?? 'Player',

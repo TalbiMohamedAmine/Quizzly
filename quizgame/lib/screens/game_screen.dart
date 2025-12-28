@@ -534,6 +534,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         index: index,
                         isSelected: _selectedOption == index,
                         hasAnswered: _hasAnswered,
+                        isHost: isHost,
+                        currentUserId: currentUserId,
                       ),
                     );
                   }),
@@ -661,9 +663,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     required int index,
     required bool isSelected,
     required bool hasAnswered,
+    required bool isHost,
+    required String? currentUserId,
   }) {
     final optionLabels = ['A', 'B', 'C', 'D'];
     final isCorrect = index == question.correctAnswerIndex;
+    
+    // Host cannot answer if regulator setting is enabled (not in playerScores)
+    final isHostInRegulatorMode = isHost && game.playerScores[currentUserId] == null;
+    final canAnswer = !hasAnswered && !isHostInRegulatorMode;
 
     Color backgroundColor;
     Color borderColor;
@@ -688,7 +696,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     return GestureDetector(
-      onTap: hasAnswered ? null : () => _submitAnswer(game, index),
+      onTap: canAnswer ? () => _submitAnswer(game, index) : null,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
