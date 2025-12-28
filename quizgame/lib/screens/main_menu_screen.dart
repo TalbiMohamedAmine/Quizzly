@@ -140,18 +140,14 @@ class _MainMenuScreenState extends State<MainMenuScreen>
 
   Widget _buildProfileIcon(User? user) {
     if (user == null) {
-      return const Icon(
-        Icons.person_rounded,
-        color: Colors.white,
-        size: 28,
-      );
+      return const Icon(Icons.person_rounded, color: Colors.white, size: 28);
     }
 
     return StreamBuilder<String?>(
       stream: _authService.userAvatarStream(user.uid),
       builder: (context, snapshot) {
         final avatarFileName = snapshot.data;
-        
+
         if (avatarFileName != null) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -163,12 +159,8 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             ),
           );
         }
-        
-        return const Icon(
-          Icons.person_rounded,
-          color: Colors.white,
-          size: 28,
-        );
+
+        return const Icon(Icons.person_rounded, color: Colors.white, size: 28);
       },
     );
   }
@@ -176,7 +168,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
-    
+
     return Scaffold(
       body: Stack(
         children: [
@@ -294,121 +286,133 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           // Menu buttons
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 30),
-                            child: Column(
-                              children: [
-                                const SizedBox(height: 24),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(30),
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF22D3EE),
-                                        Color(0xFF8B5CF6),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 24),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(30),
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFF22D3EE),
+                                          Color(0xFF8B5CF6),
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF22D3EE,
+                                          ).withValues(alpha: 0.3),
+                                          blurRadius: 15,
+                                          spreadRadius: 2,
+                                        ),
                                       ],
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF22D3EE).withValues(alpha: 0.3),
-                                        blurRadius: 15,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: _creatingRoom ? null : _createRoom,
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                          horizontal: 24,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              'Create Room',
-                                              style: GoogleFonts.comicNeue(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                                letterSpacing: 1.2,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: _creatingRoom
+                                            ? null
+                                            : _createRoom,
+                                        borderRadius: BorderRadius.circular(30),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 16,
+                                            horizontal: 24,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                'Create Room',
+                                                style: GoogleFonts.comicNeue(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                  letterSpacing: 1.2,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Icon(
-                                              Icons.add_circle_outline_rounded,
-                                              color: Colors.white,
-                                              size: 22,
-                                            ),
-                                          ],
+                                              const SizedBox(width: 12),
+                                              const Icon(
+                                                Icons
+                                                    .add_circle_outline_rounded,
+                                                color: Colors.white,
+                                                size: 22,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 24),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(30),
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Color(0xFF22D3EE),
-                                        Color(0xFF8B5CF6),
+                                  const SizedBox(height: 24),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(30),
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFF22D3EE),
+                                          Color(0xFF8B5CF6),
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(
+                                            0xFF22D3EE,
+                                          ).withValues(alpha: 0.3),
+                                          blurRadius: 15,
+                                          spreadRadius: 2,
+                                        ),
                                       ],
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF22D3EE).withValues(alpha: 0.3),
-                                        blurRadius: 15,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () {
-                                                Navigator.of(
-                                                  context,
-                                                ).pushNamed(JoinRoomScreen.routeName);
-                                              },
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                          horizontal: 24,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              'Join Room',
-                                              style: GoogleFonts.comicNeue(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                                letterSpacing: 1.2,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () {
+                                          Navigator.of(
+                                            context,
+                                          ).pushNamed(JoinRoomScreen.routeName);
+                                        },
+                                        borderRadius: BorderRadius.circular(30),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 16,
+                                            horizontal: 24,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                'Join Room',
+                                                style: GoogleFonts.comicNeue(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                  letterSpacing: 1.2,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Icon(
-                                              Icons.groups_rounded,
-                                              color: Colors.white,
-                                              size: 22,
-                                            ),
-                                          ],
+                                              const SizedBox(width: 12),
+                                              const Icon(
+                                                Icons.groups_rounded,
+                                                color: Colors.white,
+                                                size: 22,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ],
