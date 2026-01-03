@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import 'player_stats_screen.dart';
 
 // Star model for the animated background
 class Star {
@@ -1039,6 +1040,20 @@ class _AuthScreenState extends State<AuthScreen>
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 16),
+
+        // Player Statistics Button
+        _buildActionButton(
+          icon: Icons.bar_chart_rounded,
+          label: 'View Statistics',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const PlayerStatsScreen(),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
 

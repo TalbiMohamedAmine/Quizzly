@@ -1,0 +1,843 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{top=28mm, bottom=28mm, left=28mm, right=28mm}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{titling}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{wrapfig}
+\usepackage{multicol}
+\usepackage{tocloft}
+
+% code listing style
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  stringstyle=\color{teal},
+  commentstyle=\color{gray},
+  breaklines=true,
+  frame=single,
+  columns=fullflexible
+}
+
+% title formatting
+\pretitle{\begin{center}\Huge\bfseries}
+\posttitle{\par\end{center}\vskip 1em}
+\preauthor{\begin{center}\Large}
+\postauthor{\end{center}}
+\predate{\begin{center}\large}
+\postdate{\end{center}}
+
+% header/footer
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[C]{\thepage}
+
+% section spacing
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+\titlespacing*{\subsection}{0pt}{10pt}{4pt}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    % Header Section: University Logo on the Top Left
+    \begin{minipage}{0.5\textwidth}
+        \begin{flushleft}
+            \includegraphics[width=0.35\textwidth]{assets/isimm.png}
+        \end{flushleft}
+    \end{minipage}
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushright}
+            \small
+            University of Monastir \\
+            ISIMM 2025/2026
+        \end{flushright}
+    \end{minipage}
+
+    \vspace{2cm}
+
+    % Main Game Logo - Centered
+    \begin{figure}[!h]
+        \centering
+        \includegraphics[width=0.7\textwidth]{assets/logo.png}
+    \end{figure}
+
+    \vspace{0.5cm}
+
+    % Project Title & Subtitle
+    \centering
+    \begin{center}
+        \rule{\linewidth}{0.8pt} \\[0.4cm]
+        {\huge \bfseries Quizzly} \\[0.2cm]
+        {\Large \itshape Multiplayer Real-time Quiz Game\par} \\[0.4cm]
+        \rule{\linewidth}{2pt}
+    \end{center}
+
+    \vspace{2cm}
+
+    % Team Section
+    {\Large \textbf{Development Team} \par}
+    \vspace{0.8cm}
+    
+    {\large
+    \begin{tabular}{c}
+        Talbi Mohamed Amine \\
+        Kouki Nizar \\
+        Sahli Oussema
+    \end{tabular}
+    }
+
+    \vfill
+
+    
+\end{titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\onehalfspacing
+\newpage
+% Résumé Exécutif
+\section*{Résumé Exécutif}
+\addcontentsline{toc}{section}{Résumé Exécutif}
+Quizzly est une application de quiz multiplayer en temps réel multi-plateforme qui permet aux joueurs de rejoindre des salles avec des codes, de jouer des séries de questions générées par IA et de se concurrencer dans des matchs rapides et dynamiques. Ce rapport complet documente l'intégralité du cycle de vie du développement de l'application, du concept initial à la mise en œuvre. Le projet met l'accent sur une synchronisation multiplayer robuste, un pipeline de génération de questions piloté par IA, et une conception d'interface utilisateur cohérente et accessible sur les plateformes mobiles et web. Ce document couvre une analyse détaillée de l'application.
+
+\newpage
+
+\newpage
+
+% SECTION 1: CONTEXTE ET MOTIVATION
+\section{Contexte et Motivation}
+
+\subsection{Contexte Général}
+L'éducation numérique et l'apprentissage ludique sont au cœur des transformations éducatives modernes. Les jeux éducatifs ont prouvé leur efficacité dans l'engagement des apprenants et la rétention des connaissances. Parallèlement, la montée des applications mobiles et de la connectivité internet a créé un environnement propice aux jeux multiplayer en temps réel.
+
+Le marché des applications quiz et d'apprentissage par le jeu est en croissance exponentielle. Des applications comme Kahoot!, Quizizz et d'autres plateformes de quiz compétitives ont démontré la demande massive pour des expériences de jeu éducatif collaboratives et immersives. Cependant, la plupart de ces solutions reposent sur des batteries de questions pré-authées, ce qui limite leur pertinence et leur adaptabilité à différents domaines.
+
+\subsection{Idée et Vision du Projet}
+Quizzly a été conçu pour révolutionner l'expérience du quiz multiplayer en intégrant la génération dynamique de questions par intelligence artificielle. L'idée centrale est la suivante :
+
+\begin{enumerate}
+  \item \textbf{Accessibilité}: Permettre aux utilisateurs de créer une salle avec un simple code (sans authentification complexe) et d'inviter d'autres joueurs instantanément.
+  \item \textbf{Dynamique}: Générer des questions fraîches et pertinentes en temps réel via une API d'intelligence artificielle, éliminant la nécessité de maintenir des bases de données statiques.
+  \item \textbf{Multiplateforme}: Offrir une expérience cohérente sur mobile (Android/iOS) et web, permettant aux joueurs de participer depuis n'importe quel appareil.
+  \item \textbf{Compétition en Temps Réel}: Synchroniser l'état du jeu à travers tous les clients en temps réel, créant une expérience de compétition rapide et palpitante.
+\end{enumerate}
+
+\subsection{Public Cible}
+Quizzly s'adresse à un public très diversifié:
+\begin{itemize}
+  \item \textbf{Joueurs Occasionnels}: Utilisateurs recherchant un divertissement léger et compétitif avec des amis.
+  \item \textbf{Étudiants}: Apprenants utilisant le jeu comme outil de révision et de consolidation des connaissances.
+  \item \textbf{Formateurs et Éducateurs}: Professeurs et formateurs souhaitant engager leurs audience avec des quiz interactifs sans préparation excessif de contenu.
+  \item \textbf{Organisateurs d'Événements}: Entreprises et événementiel utilisant les jeux quiz pour team-building et engagement.
+\end{itemize}
+
+\subsection{Motivations Technologiques}
+\begin{itemize}
+  \item \textbf{Flutter}: Choix du framework Flutter permet un développement cross-platform avec un codebase unique, réduisant le temps de développement et la complexité de maintenance.
+  \item \textbf{Firebase}: Utilisation de Firebase (Firestore, Authentication, Functions) offre une infrastructure cloud scalable sans besoin d'un serveur backend personnalisé complexe.
+  \item \textbf{IA Générative}: L'intégration d'APIs de génération de texte par IA permet une création de contenu dynamique, offrant une expérience fraîche à chaque partie.
+\end{itemize}
+
+\subsection{Objectifs du Projet}
+\begin{enumerate}
+  \item Créer une plateforme de quiz multiplayer fonctionnelle avec synchronisation en temps réel.
+  \item Intégrer la génération dynamique de questions par IA avec validation et gestion d'erreurs robustes.
+  \item Implémenter une interface utilisateur responsive et accessible sur tous les appareils.
+  \item Assurer une expérience utilisateur fluide avec gestion appropriée des états et transitions.
+  \item Fournir des contrôles hôte complets pour personnaliser les paramètres de jeu.
+  \item Documenter complètement l'architecture et les décisions techniques pour faciliter la maintenance future.
+\end{enumerate}
+
+\newpage
+
+\newpage
+
+% SECTION 2: ANALYSE DES BESOINS
+\section{Analyse des Besoins}
+
+\subsection{Besoins Fonctionnels}
+
+Les besoins fonctionnels définissent les capacités et les services que le système Quizzly doit fournir.
+
+\subsubsection*{BF1: Gestion des Utilisateurs et Authentification}
+\begin{itemize}
+  \item L'application doit permettre aux utilisateurs de se connecter via email/mot de passe ou authentification Google.
+  \item Les utilisateurs non authentifiés doivent pouvoir jouer en tant qu'invités (avec un nom d'affichage requis).
+  \item Chaque utilisateur doit avoir un profil avec un avatar personnalisable.
+\end{itemize}
+
+\subsubsection*{BF2: Création et Gestion des Salles}
+\begin{itemize}
+  \item Un utilisateur (hôte) doit pouvoir créer une salle de jeu avec un code d'accès unique.
+  \item Les autres utilisateurs doivent pouvoir rejoindre une salle existante en utilisant le code.
+  \item La salle doit afficher une liste de tous les joueurs actuellement connectés.
+  \item L'hôte doit pouvoir configurer les paramètres de la salle (nombre max de joueurs, catégories, minuteur par question).
+  \item Un code de salle doit être unique et facile à partager (lien via QR code).
+\end{itemize}
+
+\subsubsection*{BF3: Génération Dynamique de Questions}
+\begin{itemize}
+  \item Les questions doivent être générées par IA selon la catégorie et la difficulté sélectionnées.
+  \item Les questions doivent être validées pour garantir la cohérence du schéma JSON.
+  \item Chaque question doit contenir un énoncé, des options de réponse, la bonne réponse et une explication.
+  \item Un mécanisme de fallback doit exister pour les cas où la génération IA échoue.
+\end{itemize}
+
+\subsubsection*{BF4: Flux de Jeu en Temps Réel}
+\begin{itemize}
+  \item Le jeu doit progresser par rounds (10 questions par défaut).
+  \item Chaque round doit inclure: l'affichage de la question, le temps imparti, et les options de réponse.
+  \item Les joueurs doivent pouvoir soumettre leur réponse avant l'expiration du minuteur.
+  \item Tous les clients doivent être synchronisés sur le même round/question en temps réel.
+  \item Une fois le temps écoulé (ou tous les joueurs ont répondu), la réponse correcte doit être révélée à tous les joueurs.
+\end{itemize}
+
+\subsubsection*{BF5: Système de Points et Leaderboard}
+\begin{itemize}
+  \item Les points doivent être calculés selon: base + bonus de vitesse (répondre vite rapporte plus).
+  \item Le leaderboard doit se mettre à jour en temps réel après chaque question.
+  \item Un écran de résultats finaux doit afficher le classement final avec les trois premiers sur un podium.
+\end{itemize}
+
+\subsubsection*{BF6: Contrôles d'Hôte Avancés}
+\begin{itemize}
+  \item L'hôte doit pouvoir démarrer/arrêter le jeu à tout moment.
+  \item L'hôte doit pouvoir activer le "mode régulateur" (l'hôte ne joue pas mais observe).
+  \item L'hôte doit pouvoir configurer les catégories des questions.
+  \item L'hôte doit pouvoir ajouter des catégories personnalisées à la volée.
+\end{itemize}
+
+\subsubsection*{BF7: Interface Multiplateforme}
+\begin{itemize}
+  \item L'application doit fonctionner sur Android, iOS et web.
+  \item L'interface doit s'adapter automatiquement à la taille de l'écran (responsive design).
+  \item Les fonctionnalités doivent être identiques sur toutes les plateformes.
+\end{itemize}
+
+\subsection{Besoins Non-Fonctionnels}
+
+Les besoins non-fonctionnels définissent les critères de qualité, de performance et de sécurité du système.
+
+\subsubsection*{BNF1: Performance et Latence}
+\begin{itemize}
+  \item La synchronisation Firestore doit garantir une latence inférieure à 500ms entre un changement côté serveur et sa réception par les clients.
+  \item Le temps de réponse de l'interface utilisateur doit être inférieur à 100ms pour toute interaction utilisateur.
+  \item La génération de questions par IA doit être complétée en moins de 15 secondes.
+\end{itemize}
+
+\subsubsection*{BNF2: Scalabilité}
+\begin{itemize}
+  \item Le système doit supporter au minimum 100 salles actives simultanément.
+  \item Chaque salle peut accueillir 1 à 50 joueurs, sans limitation théorique du nombre total de joueurs concurrents.
+\end{itemize}
+
+\subsubsection*{BNF3: Disponibilité et Fiabilité}
+\begin{itemize}
+  \item L'application doit avoir un taux d'uptime d'au minimum 95\%.
+  \item Les données utilisateur et les scores doivent être sauvegardés de façon durable.
+  \item En cas de déconnexion réseau, l'application doit tenter la reconnexion automatiquement.
+\end{itemize}
+
+\subsubsection*{BNF4: Sécurité}
+\begin{itemize}
+  \item Les mots de passe doivent être hashés et stockés de façon sécurisée (Firebase Auth).
+  \item Les données sensibles doivent être chiffrées en transit (HTTPS/TLS).
+  \item Les règles de sécurité Firestore doivent restreindre l'accès selon le rôle (hôte vs joueur).
+  \item Les appels d'API IA doivent être authentifiés et les clés d'API ne doivent jamais être exposées côté client.
+\end{itemize}
+
+\subsubsection*{BNF5: Compatibilité et Support}
+\begin{itemize}
+  \item L'application doit supporter Android 5.0+, iOS 12.0+, et les navigateurs modernes (Chrome, Safari, Firefox).
+  \item Le code doit suivre les normes de style Dart (effective Dart) et Flutter.
+  \item La documentation doit être complète et à jour.
+\end{itemize}
+
+\newpage
+
+% Section 3: Les Technologies
+\section{Les Technologies}
+\subsection{Aperçu}
+Quizzly est construit principalement avec Flutter pour le front-end (codebase unique pour Android, iOS et Web), et Firebase (Firestore, Authentification, Cloud Functions optionnellement) comme infrastructure back-end. Le composant de génération de questions par IA utilise des appels REST vers un endpoint de modèle IA (MiMo-V2-Flash).
+
+\subsection{Technologies Clés}
+\begin{itemize}
+  \item Flutter (Dart) — logique UI et app
+  \item Firebase Auth — authentification utilisateur (Email/Mot de passe, Google Sign-In)
+  \item Cloud Firestore — synchronisation des données en temps réel (salles, jeux, scores)
+  \item OpenRouter API (xiaomi/mimo-v2-flash:free) — génération de questions par IA (sortie JSON)
+  \item QR Flutter \& Share Plus — partage de codes de salle
+  \item Google Fonts — police personnalisée (Comic Neue)
+  \item HTTP Package — appels REST vers l'API IA
+\end{itemize}
+
+\subsection{Pourquoi ces choix}
+\begin{itemize}
+  \item Flutter permet un codebase unique et une UI cohérente sur les plateformes mobiles et web.
+  \item Firestore fournit des écouteurs en temps réel intégrés via \texttt{StreamBuilder}, simplifiant l'implémentation de la synchronisation d'état multiplayer.
+  \item OpenRouter API avec le modèle xiaomi/mimo-v2-flash:free permet une génération de questions dynamique gratuite et rapide.
+  \item QR Flutter et Share Plus facilitent le partage des codes de salle entre joueurs.
+  \item Google Fonts (Comic Neue) offre un style ludique et accessible.
+\end{itemize}
+
+\newpage
+
+% SECTION 4: CONCEPTION ET ARCHITECTURE
+\section{Conception et Architecture}
+
+\subsection{Diagrammes UML et Modélisation}
+
+Cette section présente les diagrammes UML détaillés qui illustrent la structure et les interactions du système Quizzly.
+
+\subsubsection{Diagramme de Cas d'Utilisation}
+
+Le diagramme de cas d'utilisation montre les interactions entre les acteurs (joueurs, hôte) et le système:
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{assets/usecase.png}
+  \caption{Diagramme de Cas d'Utilisation}
+  \label{fig:use-case}
+\end{figure}
+
+\newpage
+
+\subsubsection{Diagramme de Classes}
+
+Le diagramme de classes ci-dessous représente les entités principales du système et leurs relations:
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{assets/class.png}
+  \caption{Diagramme de Classes}
+  \label{fig:class}
+\end{figure}
+
+\newpage
+
+\subsubsection{Diagramme de Séquence: Flux de Jeu Complet}
+
+Ce diagramme montre l'interaction chronologique entre les composants lors d'une partie typique:
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.8\textwidth]{assets/sequence.png}
+  \caption{Diagramme de Séquence - Flux de Jeu}
+  \label{fig:sequence}
+\end{figure}
+
+\newpage
+
+\subsubsection{Diagramme de Transitions d'État}
+
+Ce diagramme présente les états du jeu et les transitions possibles:
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.76\textwidth]{assets/state.png}
+  \caption{Diagramme de Transitions d'État}
+  \label{fig:state}
+\end{figure}
+
+\newpage
+
+\subsection{Architecture Technique Détaillée}
+
+% Architecture Technique
+\section{Architecture Technique}
+Cette section explique comment les données transitent entre les couches client, serveur et IA.
+
+\subsection{Flux de Données}
+\begin{itemize}
+  \item Les clients se connectent à Firestore via \texttt{StreamBuilder} et écoutent les documents de salle (\texttt{watchRoom}) et de jeu (\texttt{watchGame}).
+  \item L'hôte déclenche la génération de questions (client → OpenRouter API via HTTP POST).
+  \item L'IA retourne une charge JSON ; le client nettoie les blocs markdown, parse avec \texttt{Question.fromJson} et écrit les questions dans Firestore.
+  \item Un mécanisme de fallback (\texttt{\_generateFallbackQuestions}) génère des questions de secours en cas d'échec de l'API.
+  \item Les clients lisent les questions et passent aux états 'countdown' et 'playing' en conséquence.
+  \item Les réponses des joueurs sont écrites dans Firestore via transaction ; la logique de scoring s'exécute côté client avec réconciliation.
+  \item L'hôte contrôle les transitions d'état via \texttt{startRound}, \texttt{endRound}, \texttt{nextRound}, \texttt{showResults}.
+\end{itemize}
+
+\subsection{Cohérence Temps Réel}
+Les écouteurs Firestore (\texttt{.snapshots()}) garantissent une propagation en temps quasi-réel. Pour éviter les conditions de course :
+\begin{itemize}
+  \item Utiliser les timestamps serveur (\texttt{Timestamp.fromDate}) pour l'ordonnancement.
+  \item Seul l'hôte écrit les transitions d'état (ex: de 'countdown' à 'playing', 'reviewing', 'results') via les méthodes GameService.
+  \item Le scoring est calculé côté client lors de la soumission des réponses dans une transaction Firestore.
+  \item Utiliser une UI optimiste localement avec StreamBuilder pour les mises à jour en temps réel.
+  \item Cache local (\texttt{\_cachedGame}) pour éviter les sauts d'UI pendant le chargement.
+  \item Détection d'état (\texttt{\_lastGameState}) pour reset les états locaux lors des transitions.
+\end{itemize}
+
+\subsection{Front-end}
+\begin{itemize}
+  \item Écrans Flutter : MainMenuScreen, AuthScreen, JoinRoomScreen, LobbyScreen, GameScreen, LeaderboardScreen, PlayerStatsScreen.
+  \item Utiliser StreamBuilder pour les mises à jour Firestore en direct (watchRoom, watchGame, watchPlayerStats).
+  \item AnimationController pour les animations (Stars background, Avatar bounce, Podium séquentiel, Confetti, Timer circular progress).
+  \item Contrôleurs locaux et Timer.periodic pour animer les comptes à rebours et gérer la réactivité.
+  \item Widget CollapsibleSection réutilisable pour organiser les paramètres du lobby.
+\end{itemize}
+
+\subsection{Back-end / Logique}
+\begin{itemize}
+  \item Collections Firestore : \texttt{rooms} (salles de jeu), \texttt{games} (parties en cours), \texttt{users} (avatars), \texttt{player\_stats} (statistiques joueurs).
+  \item Modèles de données : Room (avec players[], selectedCategories[], customCategories[]), Game (avec questions[], playerScores\{\}, roundAnswers\{\}), Question, PlayerScore, RoundAnswer, PlayerStats.
+  \item Validation côté client des sorties IA avec nettoyage des blocs markdown et mécanisme de fallback.
+  \item Fonction de scoring : points = base + speedBonus, où base = 1000, maxSpeedBonus = 500.
+  \item Transactions Firestore pour la soumission des réponses (\texttt{runTransaction}).
+\end{itemize}
+
+\subsection{Structure de Données : Schéma JSON (IA $\rightarrow$ UI)}
+Ci-dessous un exemple de schéma JSON utilisé pour faire le lien entre la sortie IA et l'UI.
+
+\begin{lstlisting}[language=json, caption={Exemple de JSON d'ensemble de questions}]
+{
+  "questions": [
+    {
+      "question": "What is the question text?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswerIndex": 0,
+      "explanation": "Brief explanation"
+    }
+  ]
+}
+\end{lstlisting}
+
+Note : Le JSON est parsé et converti en objets Question avec le champ \texttt{questionText} côté client via \texttt{Question.fromJson()}.
+
+Notes de conception clés :
+\begin{itemize}
+  \item Chaque question contient un seul index de réponse correcte (0, 1, 2, ou 3) explicite pour éviter l'ambiguïté.
+  \item Le service nettoie les blocs markdown (\texttt{```json} et \texttt{```}) avant le parsing.
+\end{itemize}
+
+\subsection{Modèles de Données Dart}
+
+\subsubsection*{Modèle Room (lib/models/room.dart)}
+\begin{lstlisting}[language=java]
+class Room {
+  final String id;
+  final String hostId;
+  final String hostName;
+  final String code;           // Code 6 caracteres (A-Z, 2-9)
+  final int maxPlayers;        // 5, 10, 20, 25, 30, 50
+  final int playerCount;
+  final String state;          // waiting, starting, playing, finished
+  final DateTime createdAt;
+  final List<Map<String, dynamic>> players;  // [{uid, name, avatar}]
+  // Game settings
+  final int tourTime;          // 15, 30, 45, 60, 90, 120 seconds
+  final int numberOfRounds;    // 5, 10, 15, 20, 25, 30
+  final bool tvSettings;
+  final bool regulatorSetting; // Host spectator mode
+  final List<String> selectedCategories;
+  final List<String> customCategories;
+  final String? gameId;        // Reference to active Game
+}
+\end{lstlisting}
+
+\subsubsection*{Modèle Game (lib/models/game.dart)}
+\begin{lstlisting}[language=java]
+class Game {
+  final String id;
+  final String roomId;
+  final String hostId;
+  final List<Question> questions;
+  final int currentRound;      // 0-indexed
+  final int totalRounds;
+  final int tourTime;
+  final String state;          // generating, countdown, playing, reviewing, results, finished
+  final Map<String, PlayerScore> playerScores;  // uid -> PlayerScore
+  final Map<int, List<RoundAnswer>> roundAnswers;  // round -> answers
+  final DateTime? roundStartTime;
+  final DateTime createdAt;
+  
+  Question? get currentQuestion;  // questions[currentRound]
+  bool get isLastRound;           // currentRound >= totalRounds - 1
+}
+\end{lstlisting}
+
+\subsubsection*{Modèle PlayerScore}
+\begin{lstlisting}[language=java]
+class PlayerScore {
+  final String odbc;           // User ID
+  final String name;
+  final String? avatar;
+  final int score;             // Total score
+  final int correctAnswers;    // Number of correct answers
+  final int totalAnswered;     // Total questions answered
+  final List<int> answerTimes; // Time taken for each answer
+}
+\end{lstlisting}
+
+\subsubsection*{Modèle PlayerStats (lib/models/player\_stats.dart)}
+\begin{lstlisting}[language=java]
+class PlayerStats {
+  final String odbc;           // User ID
+  final int totalGamesPlayed;
+  final int totalWins;
+  final int totalPoints;
+  final Map<String, int> categoryStats;  // category -> games played
+  final DateTime? lastPlayedAt;
+  final DateTime createdAt;
+  
+  double get avgScore;         // totalPoints / totalGamesPlayed
+  String? get favoriteCategory; // Most played category
+  double get winRate;          // (totalWins / totalGamesPlayed) * 100
+}
+\end{lstlisting}
+
+\newpage
+
+% Langage de Conception UI/UX
+\section{Langage de Conception UI/UX}
+Cette section documente l'identité visuelle, les composants et le flux utilisateur.
+
+\subsection{Identité Visuelle}
+\begin{itemize}
+  \item Palette de couleurs : bleus profonds pour le fond (\#05396B à \#0E5F88 en dégradé), surbrillance cyan (\#22D3EE), or pour l'hôte (\#D9A223).
+  \item Boutons avec dégradés teal-violet (\#2DD4BF → \#6366F1) et bordures cyan lumineuses.
+  \item Coins arrondis (BorderRadius 12-24px), ombres douces avec glow effects.
+  \item Police Comic Neue via Google Fonts pour un style ludique et lisible.
+  \item Animation d'étoiles en arrière-plan avec effet de dérive horizontale pour une ambiance immersive.
+  \item 28 avatars d'animaux (bear, beaver, bunny, cat, cheetah, chicken, cow, dog, dragon, duck, frog, giraffe, gorilla, hen, hippopotamus, koala, lion, meerkat, owl, panda, penguin, puffer-fish, rabbit, sea-lion, shark, sloth, tiger) pour personnalisation des profils joueurs.
+\end{itemize}
+
+\subsection{Composants}
+\begin{itemize}
+  \item Boutons dégradés avec icône + libellé et effet de glow (Container avec BoxDecoration et LinearGradient).
+  \item Sections collapsibles (CollapsibleSection) pour organiser les paramètres dans LobbyScreen.
+  \item Grille d'avatars (AvatarPicker) avec animation de bounce à la sélection via AnimationController et TweenSequence.
+  \item QR Code stylisté via qr\_flutter (QrImageView) avec design blanc et ombres.
+  \item Jetons de catégorie avec chips colorés (Container avec BorderRadius et couleur \#6366F1).
+  \item Podium animé avec phases séquentielles (PodiumPhase enum) et confettis (ConfettiParticle) pour le gagnant.
+  \item Minuteur circulaire avec CircularProgressIndicator et transition de couleur (vert \#2DD4BF → rouge).
+  \item StarsPainter (CustomPainter) pour l'animation d'étoiles en arrière-plan avec effet de glow.
+  \item DropdownButton stylisé pour les paramètres de jeu (tourTime, numberOfRounds, maxPlayers).
+  \item Switch toggle pour les paramètres booléens (regulatorSetting).
+\end{itemize}
+
+\subsection{Flux Utilisateur}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=1\textwidth]{assets/flux.png}
+  \caption{Diagramme de Flux Utilisateur}
+  \label{fig:flux}
+\end{figure}
+
+\newpage
+
+\subsection{Paramètres de Jeu}
+Paramètres au niveau de la salle que l'hôte peut contrôler :
+\begin{itemize}
+  \item Nombre maximum de joueurs (défaut: 10, options: 5, 10, 20, 25, 30, 50)
+  \item Minuteur par question (défaut: 60s, options: 15, 30, 45, 60, 90, 120s)
+  \item Nombre de rounds (défaut: 10, options: 5, 10, 15, 20, 25, 30)
+  \item Sélection de catégories (38 catégories prédéfinies incluant: Labobo, Strange questions, General information, Sciences, Who is the famous person?, Arts, Soccer, Sports, Geography, Information, Literature, Video games, Cartoon, TV series, Films, Fashion world, Digital currencies, Technology, Currency, Slogans, Products, Fruits and vegetables, Proverbs and riddles, Ramadan Nights, Characters, Cars, Food, Mathematics, Plants, Astronomy and space, General medicine, Math puzzles, Physics, Inventors and inventions, Memes, Mythical Creatures, Brain rots, Anime \& Manga, Trends + catégories personnalisées)
+  \item Mode régulateur (hôte spectateur sans participation au jeu)
+\end{itemize}
+
+\subsection{Interface Quiz (Retours en Temps Réel)}
+Éléments de conception :
+\begin{itemize}
+  \item Zone de prompt large, options clairement lisibles.
+  \item Minuteur de compte à rebours avec transitions de couleur (vert → ambre → rouge).
+  \item Retours immédiats par réponse (correct/incorrect) et statut mini par joueur (avatar + delta de score).
+\end{itemize}
+
+\newpage
+
+% 7. Implémentation des Fonctionnalités
+\section{Implémentation des Fonctionnalités}
+Cette section détaille les fonctionnalités construites et les notes techniques.
+
+\subsection{Génération de Questions par IA}
+\begin{itemize}
+  \item Le GameService déclenche la génération avec les catégories sélectionnées et le nombre de questions.
+  \item QuestionGeneratorService distribue les questions aléatoirement entre les catégories via \texttt{\_distributeQuestionsAcrossCategories()}.
+  \item Pour chaque catégorie, un appel HTTP POST est fait à OpenRouter API (\texttt{https://openrouter.ai/api/v1/chat/completions}) avec le modèle \texttt{xiaomi/mimo-v2-flash:free}.
+  \item Le service parse la réponse JSON, nettoie les blocs markdown si présents, et valide chaque question.
+  \item En cas d'échec API, des questions de fallback sont générées localement via \texttt{\_generateFallbackQuestions()}.
+  \item Les questions validées sont écrites dans Firestore avec le document de jeu.
+\end{itemize}
+
+\subsubsection*{Prompt IA Utilisé}
+\begin{lstlisting}
+Generate exactly [count] multiple-choice quiz questions about "[category]".
+
+Each question must:
+- Be interesting and educational
+- Have exactly 4 options (A, B, C, D)
+- Have only one correct answer
+- Be suitable for a general audience
+
+Return ONLY valid JSON in this exact format, no other text:
+{
+  "questions": [
+    {
+      "question": "What is the question text?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswerIndex": 0,
+      "explanation": "Brief explanation"
+    }
+  ]
+}
+
+correctAnswerIndex is 0-based (0, 1, 2, or 3).
+\end{lstlisting}
+
+Flux pseudo-code:
+\begin{lstlisting}
+1. L'hote declenche: startGame(room) dans LobbyScreen
+2. GameService.startGame(): met room.state = 'starting'
+3. QuestionGeneratorService.generateQuestions(categories, totalQuestions):
+   a. _distributeQuestionsAcrossCategories() - repartition aleatoire
+   b. Pour chaque categorie: _generateQuestionsForCategory()
+   c. Appel HTTP POST vers OpenRouter API (xiaomi/mimo-v2-flash:free)
+   d. Parse JSON, nettoie les blocs markdown si presents
+   e. Question.fromJson() pour chaque question
+   f. Si erreur: _generateFallbackQuestions()
+4. GameService: cree le document game avec state='countdown'
+5. GameService: met room.state = 'playing' et room.gameId = game.id
+6. Les clients (StreamBuilder) detectent le gameId et naviguent vers GameScreen
+7. GameScreen: ecoute game via _gameService.watchGame(gameId)
+\end{lstlisting}
+
+\subsection{Sync Multiplayer \& Scoring}
+\begin{itemize}
+  \item Les réponses des joueurs sont écrites dans le document game (roundAnswers) avec le temps de réponse via transaction Firestore.
+  \item Score calculé dans GameService.submitAnswer() en utilisant: points = base + speedBonus, où
+  speedBonus = round( maxSpeedBonus * (1 - timeTaken / timeLimit) )
+  \item Le calcul est fait côté client lors de la soumission et synchronisé via Firestore.
+  \item Base points = 1000, Max speed bonus = 500.
+  \item PlayerScore stocké avec: uid, name, avatar, score, correctAnswers, totalAnswered, answerTimes[].
+  \item RoundAnswer stocké avec: uid, selectedOption, timeToAnswer, isCorrect.
+  \item Auto-avancement déclenché par \texttt{\_checkAllPlayersAnswered()} quand tous ont répondu.
+\end{itemize}
+
+\subsection{Mode Régulateur}
+\begin{itemize}
+  \item L'hôte est exclu de l'initialisation \texttt{playerScores} dans GameService.startGame() quand regulatorSetting=true.
+  \item L'UI désactive les boutons de réponse pour l'hôte via vérification \texttt{isHostInRegulatorMode = isHost \&\& game.playerScores[currentUserId] == null}.
+  \item La logique de validation dans LobbyScreen vérifie que activePlayersCount > 1 quand mode régulateur est actif avant de permettre le démarrage.
+  \item Description UI: "The room owner is allowed to organize the game without playing with the other players. This is typically for competitions and tournaments."
+\end{itemize}
+
+\subsection{Support Multi-Plateforme}
+\begin{itemize}
+  \item Flutter permet au même codebase de fonctionner sur Android, iOS et web (configuré via pubspec.yaml).
+  \item Les différences d'UI spécifiques à la plateforme sont gérées via \texttt{LayoutBuilder} pour la mise en page réactive et \texttt{kIsWeb} pour le comportement spécifique à la plateforme.
+  \item Support des deep links web pour rejoindre une salle directement via URL (ex: ?join=CODE) implémenté dans main.dart avec \texttt{Uri.base.queryParameters}.
+  \item Configuration GoogleSignIn différente pour web (clientId requis) vs mobile.
+  \item Dossiers de configuration par plateforme: android/, ios/, web/, windows/, linux/, macos/.
+\end{itemize}
+
+\subsection{Fonctionnalités Additionnelles}
+\begin{itemize}
+  \item \textbf{QR Code \& Partage}: Génération de QR codes stylisés via qr\_flutter pour partager le code de salle, avec options de partage (Share Plus) et copie de lien dans le presse-papiers.
+  \item \textbf{Deep Links}: Support des URLs web pour rejoindre directement une salle (https://quiz-duel-1b09b.web.app/?join=CODE). Implémenté dans main.dart avec \texttt{Uri.base.queryParameters}.
+  \item \textbf{Système d'Avatars}: 28 avatars prédéfinis (animaux) avec sélection animée (bounce effect via AnimationController) et stockage dans Firestore collection 'users'.
+  \item \textbf{Play Again}: Possibilité de rejouer avec les mêmes joueurs après une partie terminée via \texttt{resetRoomForRematch()}.
+  \item \textbf{Podium Animé}: Animation séquentielle du podium (3ème → 2ème → 1er) avec phases distinctes (PodiumPhase enum) et confettis colorés pour le gagnant.
+  \item \textbf{Catégories Personnalisées}: L'hôte peut ajouter des catégories personnalisées via \texttt{addCustomCategory()} en plus des 38 catégories prédéfinies.
+  \item \textbf{Auto-avancement}: Le jeu avance automatiquement via \texttt{\_autoAdvanceRound()} quand tous les joueurs ont répondu ou quand le temps expire.
+  \item \textbf{Statistiques Joueur}: Suivi des statistiques (totalGamesPlayed, totalWins, totalPoints, categoryStats, winRate, avgScore) via PlayerStatsService et écran dédié.
+  \item \textbf{Live Scoreboard}: Affichage en temps réel des scores pendant le jeu avec indicateurs de position.
+\end{itemize}
+
+\newpage
+
+% SECTION 10: RÉALISATION ET IMPLÉMENTATION DÉTAILLÉE
+\section{Réalisation et Implémentation Détaillée}
+
+\subsection{Structure du Projet}
+
+La structure du répertoire suit les conventions Flutter best practices:
+
+\begin{lstlisting}[language=bash]
+lib/
+|-- main.dart                    # Point d'entree + deep links
+|-- firebase_options.dart        # Configuration Firebase
+|-- screens/                     # Ecrans (UI)
+|   |-- auth_screen.dart         # Authentification + avatar picker
+|   |-- main_menu_screen.dart    # Menu principal + stars animation
+|   |-- join_room_screen.dart    # Rejoindre une salle
+|   |-- lobby_screen.dart        # Lobby avec QR code et parametres
+|   |-- game_screen.dart         # Ecran de jeu en temps reel
+|   |-- leaderboard_screen.dart  # Podium anime avec confettis
+|   |-- player_stats_screen.dart # Statistiques du joueur
+|-- services/                    # Services (logique metier)
+|   |-- auth_service.dart        # Auth Firebase + Google Sign-In
+|   |-- room_service.dart        # Gestion des salles
+|   |-- game_service.dart        # Logique de jeu et scoring
+|   |-- question_generator_service.dart  # Generation IA
+|   |-- player_stats_service.dart        # Stats joueurs
+|-- models/                      # Modeles de donnees
+|   |-- room.dart                # Modele Room
+|   |-- game.dart                # Game, PlayerScore, RoundAnswer
+|   |-- question.dart            # Modele Question
+|   |-- player_stats.dart        # Statistiques joueur
+|-- assets/                      # 28 avatars d'animaux (PNG)
+
+\end{lstlisting}
+
+\subsection{Implémentation des Composants Clés}
+
+\subsubsection*{Générateur de Questions avec AI}
+
+Implémenté dans \texttt{lib/services/question\_generator\_service.dart}:
+
+\begin{lstlisting}[language=java]
+/// Generates questions for the game based on selected categories
+/// Distributes questions randomly across categories
+Future<List<Question>> generateQuestions({
+  required List<String> categories,
+  required int totalQuestions,
+}) async {
+  // Distribute questions randomly across categories
+  final questionDistribution = _distributeQuestionsAcrossCategories(
+    categories: categories,
+    totalQuestions: totalQuestions,
+  );
+
+  final List<Question> allQuestions = [];
+
+  for (final entry in questionDistribution.entries) {
+    final category = entry.key;
+    final count = entry.value;
+    if (count > 0) {
+      try {
+        final questions = await _generateQuestionsForCategory(
+          category: category,
+          count: count,
+        );
+        allQuestions.addAll(questions);
+      } catch (e) {
+        // Generate fallback questions if API fails
+        allQuestions.addAll(_generateFallbackQuestions(category, count));
+      }
+    }
+  }
+  // Shuffle all questions to mix categories
+  allQuestions.shuffle(_random);
+  return allQuestions;
+}
+\end{lstlisting}
+
+\subsubsection*{Calcul du Score avec Bonus de Vitesse}
+
+Le scoring est implémenté comme méthode privée dans GameService (\texttt{lib/services/game\_service.dart}):
+
+\begin{lstlisting}[language=java]
+/// Calculate points based on answer time
+/// Faster answers get more points
+int _calculatePoints(int timeToAnswer, int maxTime) {
+  // Base points: 1000
+  // Bonus for speed: up to 500 extra points
+  const basePoints = 1000;
+  const maxBonusPoints = 500;
+  
+  final timeRatio = 1 - (timeToAnswer / maxTime);
+  final bonus = (maxBonusPoints * timeRatio).round();
+  
+  return basePoints + bonus;
+}
+\end{lstlisting}
+
+Le score est calculé lors de la soumission de la réponse dans la méthode \texttt{submitAnswer()} en utilisant une transaction Firestore pour garantir la cohérence.
+
+\subsection{Gestion des États de Jeu}
+
+Le système progresse à travers les états suivants:
+
+\textbf{États de Room (modèle Room):}
+\begin{itemize}
+  \item \textbf{waiting}: Inscription des joueurs et configuration dans le lobby.
+  \item \textbf{starting}: Génération des questions en cours par l'IA.
+  \item \textbf{playing}: Jeu en cours, référence au gameId.
+  \item \textbf{finished}: Jeu terminé, possibilité de "Play Again".
+\end{itemize}
+
+\textbf{États de Game (modèle Game):}
+\begin{itemize}
+  \item \textbf{generating}: Génération IA des questions en cours.
+  \item \textbf{countdown}: Compte à rebours 5s avant chaque question.
+  \item \textbf{playing}: Affichage question et options de réponse, minuteur actif.
+  \item \textbf{reviewing}: Affichage de la réponse correcte (2s) avec feedback visuel.
+  \item \textbf{results}: Écran de leaderboard avec podium animé séquentiel et confettis.
+  \item \textbf{finished}: Jeu terminé, statistiques enregistrées, option "Play Again" disponible.
+\end{itemize}
+
+\newpage
+
+% SECTION 11: CONCLUSION ET PERSPECTIVES
+\section{Conclusion}
+
+Quizzly représente une démonstration réussie d'une application mobile moderne, combinant les meilleures pratiques de développement Flutter, l'intégration intelligente d'IA, et une architecture scalable basée sur Firebase. Le projet offre une base solide pour l'expansion future, avec une architecture extensible permettant l'ajout de features sans remaniement majeur.
+
+Les apprentissages acquis durant le développement, particulièrement en matière de synchronisation temps réel, de gestion d'état complexe, et d'intégration IA, constituent un corps de connaissances réutilisable pour des projets futurs similaires.
+
+L'application démontre clairement la viabilité commerciale et technique d'une plateforme de quiz moderne et interactive, positionnant le projet pour une adoption potentielle sur le marché des applications éducatives et de divertissement.
+
+\newpage
+
+% Annexe : Schémas JSON et Code
+\appendix
+
+\section{Annexe : Ressources et Références}
+
+\subsection{Dépendances du Projet (pubspec.yaml)}
+\begin{itemize}
+  \item flutter sdk: \^{}3.10.3
+  \item firebase\_core: \^{}4.3.0
+  \item cloud\_firestore: \^{}6.1.1
+  \item firebase\_auth: \^{}6.1.3
+  \item google\_sign\_in: \^{}6.2.2
+  \item provider: \^{}6.0.5
+  \item google\_fonts: \^{}6.2.1
+  \item qr\_flutter: \^{}4.1.0
+  \item share\_plus: \^{}10.1.4
+  \item http: \^{}1.2.0
+\end{itemize}
+
+\subsection{Documentation et Références}
+\begin{itemize}
+  \item Flutter Documentation: \url{https://flutter.dev/docs}
+  \item Dart Language Guide: \url{https://dart.dev/guides}
+  \item Firebase for Flutter: \url{https://firebase.flutter.dev/}
+  \item Firebase Firestore Best Practices: \url{https://firebase.google.com/docs/firestore/best-practices}
+  \item Effective Dart: \url{https://dart.dev/guides/language/effective-dart}
+  \item OpenRouter API: \url{https://openrouter.ai/docs}
+  \item QR Flutter Package: \url{https://pub.dev/packages/qr_flutter}
+  \item Share Plus Package: \url{https://pub.dev/packages/share_plus}
+  \item Google Fonts: \url{https://pub.dev/packages/google_fonts}
+\end{itemize}
+
+\vspace{3cm}
+
+
+\begin{center}
+\rule{\linewidth}{2pt}
+  \Large \textbf{Fin du Rapport — Quizzly} \\
+\end{center}
+
+\end{document}

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/main_menu_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/join_room_screen.dart';
+import 'screens/player_stats_screen.dart';
 
 String? _initialJoinCode;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
   // Check for join parameter in URL (web only)
@@ -77,6 +80,7 @@ class MyApp extends StatelessWidget {
       routes: {
         AuthScreen.routeName: (_) => const AuthScreen(),
         JoinRoomScreen.routeName: (_) => const JoinRoomScreen(),
+        PlayerStatsScreen.routeName: (_) => const PlayerStatsScreen(),
       },
     );
   }

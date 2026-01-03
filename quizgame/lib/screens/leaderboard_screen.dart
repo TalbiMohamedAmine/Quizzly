@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/game.dart';
 import '../services/room_service.dart';
+import '../services/game_service.dart';
 import 'lobby_screen.dart';
 
 // Star model for the animated background
@@ -53,6 +54,7 @@ class LeaderboardScreen extends StatefulWidget {
   final List<PlayerScore> leaderboard;
   final String? roomId;
   final String? hostId;
+  final String? gameId;
   final bool showBackToLobby;
 
   const LeaderboardScreen({
@@ -60,6 +62,7 @@ class LeaderboardScreen extends StatefulWidget {
     required this.leaderboard,
     this.roomId,
     this.hostId,
+    this.gameId,
     this.showBackToLobby = true,
   });
 
@@ -130,6 +133,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
   // Play Again state
   final RoomService _roomService = RoomService();
+  final GameService _gameService = GameService();
   bool _isStartingRematch = false;
   StreamSubscription? _roomSubscription;
   bool _hasNavigatedToLobby = false;
@@ -143,6 +147,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       duration: const Duration(seconds: 1),
     )..repeat();
     _animController.addListener(_updateStars);
+
+    // Record game stats when leaderboard is shown (backup in case it wasn't recorded earlier)
+    _recordStats();
 
     // Listen to room state changes for Play Again functionality
     _startRoomListener();
@@ -236,6 +243,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         _startSequencedAnimation();
       }
     });
+  }
+
+  /// Record game stats (backup call in case it wasn't recorded when game ended)
+  Future<void> _recordStats() async {
+    if (widget.gameId != null && widget.roomId != null) {
+      try {
+        await _gameService.recordGameStats(
+          gameId: widget.gameId!,
+          roomId: widget.roomId!,
+        );
+      } catch (e) {
+        debugPrint('Error recording stats: $e');
+      }
+    }
   }
 
   void _startRoomListener() {

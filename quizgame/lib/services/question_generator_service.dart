@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/question.dart';
 
 class QuestionGeneratorService {
   // Using OpenRouter API for question generation
-  // TODO: Replace with your valid OpenRouter API key from https://openrouter.ai/keys
-  static const String _apiKey = String.fromEnvironment('OPENROUTER_API_KEY', 
-    defaultValue: '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');
+  static String get _apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
   static const String _baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
   static const String _model = 'xiaomi/mimo-v2-flash:free';
 

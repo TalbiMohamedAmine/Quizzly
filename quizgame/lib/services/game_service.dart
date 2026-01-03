@@ -3,10 +3,12 @@ import '../models/game.dart';
 import '../models/question.dart';
 import '../models/room.dart';
 import 'question_generator_service.dart';
+import 'player_stats_service.dart';
 
 class GameService {
   final _firestore = FirebaseFirestore.instance;
   final _questionGenerator = QuestionGeneratorService();
+  final _playerStatsService = PlayerStatsService();
 
   /// Starts a new game for the given room
   /// Generates questions using AI and creates the game document
@@ -172,6 +174,8 @@ class GameService {
   /// Advance to the next round (host only)
   Future<void> nextRound({required String gameId}) async {
     final gameRef = _firestore.collection('games').doc(gameId);
+    bool gameFinished = false;
+    String? roomId;
 
     await _firestore.runTransaction((tx) async {
       final snap = await tx.get(gameRef);
@@ -181,6 +185,8 @@ class GameService {
       
       if (game.currentRound >= game.totalRounds - 1) {
         // Game is finished
+        gameFinished = true;
+        roomId = game.roomId;
         tx.update(gameRef, {
           'state': 'finished',
           'currentRound': game.currentRound,
@@ -199,6 +205,11 @@ class GameService {
         });
       }
     });
+    
+    // Record stats after transaction completes if game finished
+    if (gameFinished && roomId != null) {
+      await _recordStatsIfNeeded(gameId: gameId, roomId: roomId!);
+    }
   }
 
   /// Start the current round (transition from countdown/reviewing to playing)
@@ -230,7 +241,10 @@ class GameService {
   }
 
   /// End the game and clean up
+  /// Also records player statistics for the game
   Future<void> endGame({required String gameId, required String roomId}) async {
+    await _recordStatsIfNeeded(gameId: gameId, roomId: roomId);
+    
     await _firestore.collection('games').doc(gameId).update({
       'state': 'finished',
     });
@@ -238,6 +252,43 @@ class GameService {
     await _firestore.collection('rooms').doc(roomId).update({
       'state': 'finished',
     });
+  }
+  
+  /// Records player stats for a game if not already recorded
+  Future<void> _recordStatsIfNeeded({required String gameId, required String roomId}) async {
+    final gameDoc = await _firestore.collection('games').doc(gameId).get();
+    if (!gameDoc.exists) return;
+    
+    final data = gameDoc.data()!;
+    // Check if stats already recorded to prevent duplicates
+    if (data['statsRecorded'] == true) return;
+    
+    final roomDoc = await _firestore.collection('rooms').doc(roomId).get();
+    if (!roomDoc.exists) return;
+    
+    final game = Game.fromFirestore(gameDoc);
+    final roomData = roomDoc.data()!;
+    final categories = List<String>.from(roomData['selectedCategories'] ?? []);
+    
+    // Get leaderboard and record stats
+    final leaderboard = getLeaderboard(game);
+    if (leaderboard.isNotEmpty) {
+      await _playerStatsService.recordGameResults(
+        game: game,
+        leaderboard: leaderboard,
+        categories: categories,
+      );
+      
+      // Mark stats as recorded
+      await _firestore.collection('games').doc(gameId).update({
+        'statsRecorded': true,
+      });
+    }
+  }
+  
+  /// Public method to record game stats (can be called from LeaderboardScreen)
+  Future<void> recordGameStats({required String gameId, required String roomId}) async {
+    await _recordStatsIfNeeded(gameId: gameId, roomId: roomId);
   }
 
   /// Get sorted leaderboard
