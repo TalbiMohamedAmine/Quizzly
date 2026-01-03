@@ -433,7 +433,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                     ),
                   ),
                   child: Text(
-                    '🎄 Happy Holidays! 🎄',
+                    '⚡ Ready to Duel? Let\'s Go! ⚡',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.comicNeue(
                       fontSize: 16,

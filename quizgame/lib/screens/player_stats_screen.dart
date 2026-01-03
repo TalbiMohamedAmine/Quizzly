@@ -266,6 +266,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen>
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
+          childAspectRatio: 1.8,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
@@ -332,22 +333,22 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 32, color: color),
-          const SizedBox(height: 8),
+          Icon(icon, size: 40, color: color),
+          const SizedBox(height: 6),
           Text(
             value,
             style: GoogleFonts.comicNeue(
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             label,
             textAlign: TextAlign.center,
             style: GoogleFonts.comicNeue(
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.7),
             ),

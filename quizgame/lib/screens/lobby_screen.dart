@@ -24,16 +24,33 @@ class _LobbyScreenState extends State<LobbyScreen> {
   bool _startingGame = false;
 
   // Available categories
-  static const List<String> _allCategories = [ 'Labobo', 
-  'Strange questions', 'General information', 'Sciences', 
-  'Who is the famous person?', 'Arts', 'Soccer', 'Sports', 'Geography', 
-  'Information', 'Literature', 'Video games', 'Cartoon', 'TV series', 
-  'Films', 'Fashion world', 'Digital currencies', 'Technology', 'Currency', 
-  'Slogans',  'Products', 'Fruits and vegetables', 'Proverbs and riddles', 
-  'Ramadan Nights', 'Characters', 'Cars', 'Food', 'Mathematics', 'Plants', 
-  'Astronomy and space', 'General medicine', 'Math puzzles', 'Physics', 
-  'Inventors and inventions', 'Memes', 'Mythical Creatures', 'Brain rots', 
-  'Anime & Manga', 'Trends'];
+  static const List<String> _allCategories = [
+    'General Knowledge',
+    'Science & Technology',
+    'Mathematics',
+    'Physics',
+    'Chemistry',
+    'Biology',
+    'Computer Science',
+    'Programming',
+    'History',
+    'Geography',
+    'Literature',
+    'Philosophy',
+    'Psychology',
+    'Economics',
+    'Business & Management',
+    'Art & Culture',
+    'Music',
+    'World Languages',
+    'Politics',
+    'Law & Ethics',
+    'Medicine & Health',
+    'Engineering',
+    'Environmental Science',
+    'Astronomy & Space',
+    'Sports & Fitness',
+  ];
 
 
   String _getShareLink(String code) => 'https://quiz-duel-1b09b.web.app/?join=$code';

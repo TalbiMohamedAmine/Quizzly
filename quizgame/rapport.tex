@@ -262,6 +262,8 @@ Les besoins non-fonctionnels définissent les critères de qualité, de performa
   \item Les données sensibles doivent être chiffrées en transit (HTTPS/TLS).
   \item Les règles de sécurité Firestore doivent restreindre l'accès selon le rôle (hôte vs joueur).
   \item Les appels d'API IA doivent être authentifiés et les clés d'API ne doivent jamais être exposées côté client.
+  \item Les clés API (Firebase, OpenRouter) sont stockées dans un fichier .env non versionné et chargées via flutter\_dotenv.
+  \item Un fichier .env.example est fourni comme template sans les valeurs sensibles.
 \end{itemize}
 
 \subsubsection*{BNF5: Compatibilité et Support}
@@ -276,7 +278,7 @@ Les besoins non-fonctionnels définissent les critères de qualité, de performa
 % Section 3: Les Technologies
 \section{Les Technologies}
 \subsection{Aperçu}
-Quizzly est construit principalement avec Flutter pour le front-end (codebase unique pour Android, iOS et Web), et Firebase (Firestore, Authentification, Cloud Functions optionnellement) comme infrastructure back-end. Le composant de génération de questions par IA utilise des appels REST vers un endpoint de modèle IA (MiMo-V2-Flash).
+Quizzly est construit principalement avec Flutter pour le front-end (codebase unique pour Android, iOS et Web), et Firebase (Firestore, Authentification, Cloud Functions optionnellement) comme infrastructure back-end. Le composant de génération de questions par IA utilise des appels REST vers un endpoint de modèle IA (xiaomi/mimo-v2-flash:free). Le projet implémente des pratiques de sécurité modernes avec la gestion sécurisée des clés API via des variables d'environnement.
 
 \subsection{Technologies Clés}
 \begin{itemize}
@@ -287,6 +289,7 @@ Quizzly est construit principalement avec Flutter pour le front-end (codebase un
   \item QR Flutter \& Share Plus — partage de codes de salle
   \item Google Fonts — police personnalisée (Comic Neue)
   \item HTTP Package — appels REST vers l'API IA
+  \item flutter\_dotenv — gestion sécurisée des clés API via fichier .env
 \end{itemize}
 
 \subsection{Pourquoi ces choix}
@@ -296,6 +299,7 @@ Quizzly est construit principalement avec Flutter pour le front-end (codebase un
   \item OpenRouter API avec le modèle xiaomi/mimo-v2-flash:free permet une génération de questions dynamique gratuite et rapide.
   \item QR Flutter et Share Plus facilitent le partage des codes de salle entre joueurs.
   \item Google Fonts (Comic Neue) offre un style ludique et accessible.
+  \item flutter\_dotenv permet de sécuriser les clés API en les stockant dans un fichier .env non versionné.
 \end{itemize}
 
 \newpage
@@ -607,15 +611,17 @@ correctAnswerIndex is 0-based (0, 1, 2, or 3).
 
 Flux pseudo-code:
 \begin{lstlisting}
+0. main(): await dotenv.load(fileName: '.env')
 1. L'hote declenche: startGame(room) dans LobbyScreen
 2. GameService.startGame(): met room.state = 'starting'
 3. QuestionGeneratorService.generateQuestions(categories, totalQuestions):
    a. _distributeQuestionsAcrossCategories() - repartition aleatoire
    b. Pour chaque categorie: _generateQuestionsForCategory()
-   c. Appel HTTP POST vers OpenRouter API (xiaomi/mimo-v2-flash:free)
-   d. Parse JSON, nettoie les blocs markdown si presents
-   e. Question.fromJson() pour chaque question
-   f. Si erreur: _generateFallbackQuestions()
+   c. Recupere API key via: dotenv.env['OPENROUTER_API_KEY']
+   d. Appel HTTP POST vers OpenRouter API (xiaomi/mimo-v2-flash:free)
+   e. Parse JSON, nettoie les blocs markdown si presents
+   f. Question.fromJson() pour chaque question
+   g. Si erreur: _generateFallbackQuestions()
 4. GameService: cree le document game avec state='countdown'
 5. GameService: met room.state = 'playing' et room.gameId = game.id
 6. Les clients (StreamBuilder) detectent le gameId et naviguent vers GameScreen
@@ -675,8 +681,8 @@ La structure du répertoire suit les conventions Flutter best practices:
 
 \begin{lstlisting}[language=bash]
 lib/
-|-- main.dart                    # Point d'entree + deep links
-|-- firebase_options.dart        # Configuration Firebase
+|-- main.dart                    # Point d'entree + deep links + dotenv init
+|-- firebase_options.dart        # Configuration Firebase (via dotenv)
 |-- screens/                     # Ecrans (UI)
 |   |-- auth_screen.dart         # Authentification + avatar picker
 |   |-- main_menu_screen.dart    # Menu principal + stars animation
@@ -689,7 +695,7 @@ lib/
 |   |-- auth_service.dart        # Auth Firebase + Google Sign-In
 |   |-- room_service.dart        # Gestion des salles
 |   |-- game_service.dart        # Logique de jeu et scoring
-|   |-- question_generator_service.dart  # Generation IA
+|   |-- question_generator_service.dart  # Generation IA (via dotenv)
 |   |-- player_stats_service.dart        # Stats joueurs
 |-- models/                      # Modeles de donnees
 |   |-- room.dart                # Modele Room
@@ -697,6 +703,11 @@ lib/
 |   |-- question.dart            # Modele Question
 |   |-- player_stats.dart        # Statistiques joueur
 |-- assets/                      # 28 avatars d'animaux (PNG)
+
+# Fichiers de configuration securite (racine projet)
+.env                             # Variables d'environnement (NON versionne)
+.env.example                     # Template sans valeurs sensibles
+.gitignore                       # Exclut .env et fichiers sensibles
 
 \end{lstlisting}
 
@@ -789,6 +800,209 @@ Le système progresse à travers les états suivants:
 
 \newpage
 
+% SECTION: CAPTURES D'ÉCRAN DE L'APPLICATION
+\section{Captures d'Écran de l'Application}
+
+Cette section présente les captures d'écran des différentes interfaces de Quizzly.
+
+\subsection{Menu Principal et Authentification}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.7\textwidth]{assets/main_menu.png}
+  \caption{Écran du Menu Principal avec animation d'étoiles}
+  \label{fig:main-menu}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.7\textwidth]{assets/auth_screen.png}
+  \caption{Écran d'Authentification (Email/Google Sign-In)}
+  \label{fig:auth}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.7\textwidth]{assets/avatar_picker.png}
+  \caption{Sélection d'Avatar avec les 28 animaux disponibles}
+  \label{fig:avatar}
+\end{figure}
+
+\newpage
+
+\subsection{Lobby et Configuration}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/lobby.png}
+  \caption{Écran Lobby avec liste des joueurs et QR Code}
+  \label{fig:lobby}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/game_settings.png}
+  \caption{Paramètres de jeu (temps, rounds, catégories)}
+  \label{fig:settings}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/categories.png}
+  \caption{Sélection des catégories de questions}
+  \label{fig:categories}
+\end{figure}
+
+\newpage
+
+\subsection{Déroulement du Jeu}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/countdown.png}
+  \caption{Compte à rebours avant chaque question}
+  \label{fig:countdown}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/question.png}
+  \caption{Affichage d'une question avec les 4 options}
+  \label{fig:question}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/answer_feedback.png}
+  \caption{Feedback après réponse (correct/incorrect)}
+  \label{fig:feedback}
+\end{figure}
+
+\newpage
+
+\subsection{Résultats et Statistiques}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/leaderboard.png}
+  \caption{Podium animé avec les 3 premiers joueurs}
+  \label{fig:leaderboard}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{assets/confetti.png}
+  \caption{Célébration du gagnant avec confettis}
+  \label{fig:confetti}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.7\textwidth]{assets/player_stats.png}
+  \caption{Statistiques du joueur (parties, victoires, score moyen)}
+  \label{fig:stats}
+\end{figure}
+
+\newpage
+
+% SECTION: SÉCURITÉ ET BONNES PRATIQUES
+\section{Sécurité et Bonnes Pratiques}
+
+Cette section documente les mesures de sécurité implémentées dans Quizzly.
+
+\subsection{Gestion Sécurisée des Clés API}
+
+Le projet utilise \texttt{flutter\_dotenv} pour stocker toutes les clés API sensibles dans un fichier \texttt{.env} non versionné.
+
+\subsubsection*{Fichier .env.example (template sans valeurs)}
+\begin{lstlisting}[language=bash]
+# Firebase API Keys
+FIREBASE_WEB_API_KEY=your_web_api_key_here
+FIREBASE_ANDROID_API_KEY=your_android_api_key_here
+FIREBASE_IOS_API_KEY=your_ios_api_key_here
+
+# Firebase Project Config
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+FIREBASE_WEB_APP_ID=your_web_app_id
+FIREBASE_ANDROID_APP_ID=your_android_app_id
+FIREBASE_IOS_APP_ID=your_ios_app_id
+FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+FIREBASE_STORAGE_BUCKET=your_project_id.firebasestorage.app
+FIREBASE_MEASUREMENT_ID=your_measurement_id
+FIREBASE_IOS_BUNDLE_ID=com.example.yourapp
+
+# OpenRouter API Key
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+\end{lstlisting}
+
+\subsubsection*{Chargement des Variables d'Environnement}
+Dans \texttt{main.dart}:
+\begin{lstlisting}[language=java]
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');  // Charge les variables
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const MyApp());
+}
+\end{lstlisting}
+
+\subsubsection*{Utilisation dans firebase\_options.dart}
+\begin{lstlisting}[language=java]
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+static FirebaseOptions get web => FirebaseOptions(
+  apiKey: dotenv.env['FIREBASE_WEB_API_KEY'] ?? '',
+  appId: dotenv.env['FIREBASE_WEB_APP_ID'] ?? '',
+  messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
+  projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? '',
+  authDomain: dotenv.env['FIREBASE_AUTH_DOMAIN'] ?? '',
+  storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '',
+  measurementId: dotenv.env['FIREBASE_MEASUREMENT_ID'] ?? '',
+);
+\end{lstlisting}
+
+\subsubsection*{Utilisation dans question\_generator\_service.dart}
+\begin{lstlisting}[language=java]
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class QuestionGeneratorService {
+  static String get _apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
+  // ...
+}
+\end{lstlisting}
+
+\subsection{Fichier .gitignore}
+Le fichier \texttt{.gitignore} exclut les fichiers sensibles du contrôle de version:
+\begin{lstlisting}[language=bash]
+# Environment files
+.env
+.env.local
+.env.*.local
+\end{lstlisting}
+
+\subsection{Configuration pubspec.yaml}
+Le fichier \texttt{.env} est déclaré comme asset pour être inclus dans le bundle:
+\begin{lstlisting}[language=yaml]
+flutter:
+  assets:
+    - lib/assets/
+    - .env
+\end{lstlisting}
+
+\subsection{Avantages de cette Approche}
+\begin{itemize}
+  \item Les clés API ne sont jamais commitées dans le dépôt Git.
+  \item Chaque développeur peut avoir son propre fichier \texttt{.env} local.
+  \item Le fichier \texttt{.env.example} sert de documentation pour les clés requises.
+  \item Facilite le déploiement avec différentes configurations (dev, staging, production).
+  \item Configuration centralisée pour Firebase (Web, Android, iOS) et OpenRouter API.
+\end{itemize}
+
+\newpage
+
 % SECTION 11: CONCLUSION ET PERSPECTIVES
 \section{Conclusion}
 
@@ -817,6 +1031,7 @@ L'application démontre clairement la viabilité commerciale et technique d'une 
   \item qr\_flutter: \^{}4.1.0
   \item share\_plus: \^{}10.1.4
   \item http: \^{}1.2.0
+  \item flutter\_dotenv: \^{}5.2.1 — gestion sécurisée des variables d'environnement
 \end{itemize}
 
 \subsection{Documentation et Références}
