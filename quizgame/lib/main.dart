@@ -12,8 +12,23 @@ String? _initialJoinCode;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Load .env file - ensure it loads before Firebase init
+  try {
+    await dotenv.load(fileName: '.env');
+    debugPrint('Loaded .env with ${dotenv.env.length} variables');
+  } catch (e) {
+    debugPrint('Failed to load .env file: $e');
+  }
+  
+  // Verify keys are loaded
+  debugPrint('API Key loaded: ${dotenv.env['FIREBASE_WEB_API_KEY']?.isNotEmpty ?? false}');
+  
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    debugPrint('Failed to initialize Firebase: $e');
+  }
   
   // Check for join parameter in URL (web only)
   if (kIsWeb) {

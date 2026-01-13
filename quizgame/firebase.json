@@ -21,10 +21,10 @@
     }
   },
   "hosting": {
+    "site": "quizzly-36c08",
     "public": "build\\web",
     "ignore": [
       "firebase.json",
-      "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
